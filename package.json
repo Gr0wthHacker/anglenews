@@ -1,0 +1,28 @@
+{
+  "name": "anglecheck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AngleCheck — Multi-source journalistic angle comparison Chrome extension",
+  "workspaces": [
+    "extension",
+    "api",
+    "shared"
+  ],
+  "scripts": {
+    "dev:ext": "cd extension && npm run dev",
+    "dev:api": "cd api && npm run dev",
+    "build:ext": "cd extension && npm run build",
+    "build:api": "cd api && npm run build",
+    "build": "npm run build:ext && npm run build:api",
+    "test": "npm run test:ext && npm run test:api",
+    "test:ext": "cd extension && npm test",
+    "test:api": "cd api && npm test",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0"
+  }
+}

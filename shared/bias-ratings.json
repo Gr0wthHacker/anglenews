@@ -1,0 +1,458 @@
+[
+  {
+    "domain": "nytimes.com",
+    "name": "The New York Times",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "washingtonpost.com",
+    "name": "The Washington Post",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "cnn.com",
+    "name": "CNN",
+    "biasRating": "left",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "foxnews.com",
+    "name": "Fox News",
+    "biasRating": "right",
+    "factualRating": "mixed",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "msnbc.com",
+    "name": "MSNBC",
+    "biasRating": "left",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "nbcnews.com",
+    "name": "NBC News",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "abcnews.go.com",
+    "name": "ABC News",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "cbsnews.com",
+    "name": "CBS News",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "apnews.com",
+    "name": "Associated Press",
+    "biasRating": "center",
+    "factualRating": "very-high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "reuters.com",
+    "name": "Reuters",
+    "biasRating": "center",
+    "factualRating": "very-high",
+    "country": "UK",
+    "mediaType": "online"
+  },
+  {
+    "domain": "bloomberg.com",
+    "name": "Bloomberg",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "wsj.com",
+    "name": "The Wall Street Journal",
+    "biasRating": "right-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "npr.org",
+    "name": "NPR",
+    "biasRating": "left-center",
+    "factualRating": "very-high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "pbs.org",
+    "name": "PBS",
+    "biasRating": "left-center",
+    "factualRating": "very-high",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "usatoday.com",
+    "name": "USA Today",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "thehill.com",
+    "name": "The Hill",
+    "biasRating": "center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "politico.com",
+    "name": "Politico",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "axios.com",
+    "name": "Axios",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "huffpost.com",
+    "name": "HuffPost",
+    "biasRating": "left",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "breitbart.com",
+    "name": "Breitbart",
+    "biasRating": "far-right",
+    "factualRating": "mixed",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "dailywire.com",
+    "name": "The Daily Wire",
+    "biasRating": "right",
+    "factualRating": "mixed",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "theintercept.com",
+    "name": "The Intercept",
+    "biasRating": "left",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "jacobin.com",
+    "name": "Jacobin",
+    "biasRating": "far-left",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "reason.com",
+    "name": "Reason",
+    "biasRating": "right-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "nationalreview.com",
+    "name": "National Review",
+    "biasRating": "right",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "theatlantic.com",
+    "name": "The Atlantic",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "newyorker.com",
+    "name": "The New Yorker",
+    "biasRating": "left",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "vox.com",
+    "name": "Vox",
+    "biasRating": "left",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "vice.com",
+    "name": "Vice",
+    "biasRating": "left",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "buzzfeednews.com",
+    "name": "BuzzFeed News",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "thedailybeast.com",
+    "name": "The Daily Beast",
+    "biasRating": "left",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "newsweek.com",
+    "name": "Newsweek",
+    "biasRating": "center",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "time.com",
+    "name": "Time",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "theguardian.com",
+    "name": "The Guardian",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "UK",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "bbc.com",
+    "name": "BBC",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "UK",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "bbc.co.uk",
+    "name": "BBC",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "UK",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "propublica.org",
+    "name": "ProPublica",
+    "biasRating": "left-center",
+    "factualRating": "very-high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "motherjones.com",
+    "name": "Mother Jones",
+    "biasRating": "left",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "thefederalist.com",
+    "name": "The Federalist",
+    "biasRating": "right",
+    "factualRating": "mixed",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "washingtonexaminer.com",
+    "name": "Washington Examiner",
+    "biasRating": "right",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "nypost.com",
+    "name": "New York Post",
+    "biasRating": "right-center",
+    "factualRating": "mixed",
+    "country": "US",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "latimes.com",
+    "name": "Los Angeles Times",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "chicagotribune.com",
+    "name": "Chicago Tribune",
+    "biasRating": "right-center",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "aljazeera.com",
+    "name": "Al Jazeera",
+    "biasRating": "left-center",
+    "factualRating": "mostly-factual",
+    "country": "Qatar",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "afp.com",
+    "name": "Agence France-Presse",
+    "biasRating": "center",
+    "factualRating": "very-high",
+    "country": "France",
+    "mediaType": "online"
+  },
+  {
+    "domain": "dw.com",
+    "name": "Deutsche Welle",
+    "biasRating": "left-center",
+    "factualRating": "very-high",
+    "country": "Germany",
+    "mediaType": "online"
+  },
+  {
+    "domain": "scmp.com",
+    "name": "South China Morning Post",
+    "biasRating": "left-center",
+    "factualRating": "high",
+    "country": "Hong Kong",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "timesofindia.indiatimes.com",
+    "name": "Times of India",
+    "biasRating": "right-center",
+    "factualRating": "mostly-factual",
+    "country": "India",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "economist.com",
+    "name": "The Economist",
+    "biasRating": "left-center",
+    "factualRating": "very-high",
+    "country": "UK",
+    "mediaType": "magazine"
+  },
+  {
+    "domain": "ft.com",
+    "name": "Financial Times",
+    "biasRating": "left-center",
+    "factualRating": "very-high",
+    "country": "UK",
+    "mediaType": "newspaper"
+  },
+  {
+    "domain": "slate.com",
+    "name": "Slate",
+    "biasRating": "left",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "salon.com",
+    "name": "Salon",
+    "biasRating": "left",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "freebeacon.com",
+    "name": "The Washington Free Beacon",
+    "biasRating": "right",
+    "factualRating": "mostly-factual",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "townhall.com",
+    "name": "Townhall",
+    "biasRating": "right",
+    "factualRating": "mixed",
+    "country": "US",
+    "mediaType": "online"
+  },
+  {
+    "domain": "oann.com",
+    "name": "One America News Network",
+    "biasRating": "far-right",
+    "factualRating": "low",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "newsmax.com",
+    "name": "Newsmax",
+    "biasRating": "far-right",
+    "factualRating": "low",
+    "country": "US",
+    "mediaType": "tv"
+  },
+  {
+    "domain": "democracynow.org",
+    "name": "Democracy Now!",
+    "biasRating": "far-left",
+    "factualRating": "high",
+    "country": "US",
+    "mediaType": "online"
+  }
+]
