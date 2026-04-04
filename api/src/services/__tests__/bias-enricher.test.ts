@@ -1,29 +1,29 @@
 import { describe, it, expect, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 
-// Read the actual bias data from the correct path so we can provide it via mock
-const BIAS_DATA_PATH = resolve(__dirname, "..", "..", "..", "..", "shared", "bias-ratings.json");
-let biasJsonData: string;
-try {
-  biasJsonData = readFileSync(BIAS_DATA_PATH, "utf-8");
-} catch {
-  // Fallback: try from the project root
-  biasJsonData = readFileSync(
-    resolve(__dirname, "..", "..", "..", "..", "..", "shared", "bias-ratings.json"),
-    "utf-8"
-  );
-}
+const { biasData } = vi.hoisted(() => {
+  const biasData = JSON.stringify([
+    { domain: "cnn.com", name: "CNN", biasRating: "left", factualRating: "mostly-factual", country: "US", mediaType: "tv" },
+    { domain: "foxnews.com", name: "Fox News", biasRating: "right", factualRating: "mixed", country: "US", mediaType: "tv" },
+    { domain: "nytimes.com", name: "The New York Times", biasRating: "left-center", factualRating: "high", country: "US", mediaType: "newspaper" },
+    { domain: "apnews.com", name: "Associated Press", biasRating: "center", factualRating: "very-high", country: "US", mediaType: "online" },
+    { domain: "msnbc.com", name: "MSNBC", biasRating: "left", factualRating: "mostly-factual", country: "US", mediaType: "tv" },
+    { domain: "reuters.com", name: "Reuters", biasRating: "center", factualRating: "very-high", country: "UK", mediaType: "online" },
+    { domain: "bbc.com", name: "BBC", biasRating: "center", factualRating: "high", country: "UK", mediaType: "tv" },
+    { domain: "breitbart.com", name: "Breitbart", biasRating: "far-right", factualRating: "mixed", country: "US", mediaType: "online" },
+  ]);
+  return { biasData };
+});
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   return {
     ...actual,
-    readFileSync: vi.fn().mockImplementation((path: string, encoding?: string) => {
+    readFileSync: vi.fn().mockImplementation((...args: any[]) => {
+      const path = args[0];
       if (typeof path === "string" && path.includes("bias-ratings.json")) {
-        return biasJsonData;
+        return biasData;
       }
-      return actual.readFileSync(path, encoding as any);
+      return actual.readFileSync(...(args as Parameters<typeof actual.readFileSync>));
     }),
   };
 });

@@ -236,12 +236,12 @@ describe("POST /api/analyze", () => {
     expect(json.error).toContain("domain");
   });
 
-  it("returns 400 with empty headline", async () => {
+  it("returns 400 with non-string headline", async () => {
     const res = await app.request("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        headline: "",
+        headline: 12345,
         url: "https://reuters.com/article",
         domain: "reuters.com",
       }),
