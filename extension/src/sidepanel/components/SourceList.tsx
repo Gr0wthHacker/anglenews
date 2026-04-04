@@ -83,7 +83,7 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
                     loading="lazy"
                   />
 
-                  <span className="text-xs font-medium text-gray-700 truncate flex-1 min-w-0">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1 min-w-0">
                     {sourceName}
                   </span>
 
@@ -118,7 +118,7 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
                         Headline
                       </span>
-                      <p className="text-xs text-gray-700 mt-0.5">
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">
                         {article.headline}
                       </p>
                     </div>
@@ -127,7 +127,7 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
                         Framing
                       </span>
-                      <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
                         {angle.headline_framing}
                       </p>
                     </div>
@@ -136,7 +136,7 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
                         Central Entity
                       </span>
-                      <p className="text-xs text-gray-600 mt-0.5">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                         {angle.central_entity}
                       </p>
                     </div>
@@ -145,7 +145,7 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
                         Causal Attribution
                       </span>
-                      <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
                         {angle.causal_attribution}
                       </p>
                     </div>
@@ -154,7 +154,7 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
                         Solution Frame
                       </span>
-                      <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
                         {angle.solution_frame}
                       </p>
                     </div>

@@ -173,6 +173,11 @@ export default function Popup() {
   }, []);
 
   const initiateExtraction = useCallback(() => {
+    if (!isExtensionContext) {
+      console.warn('Not in extension context');
+      setState({ kind: "not-article" });
+      return;
+    }
     setState({ kind: "loading", message: "Extracting article..." });
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -224,6 +229,12 @@ export default function Popup() {
     const topic = searchTopic.trim();
     if (!topic || isSearching) return;
 
+    if (!isExtensionContext) {
+      console.warn('Not in extension context');
+      setState({ kind: "error", message: "Not running in extension context." });
+      return;
+    }
+
     setIsSearching(true);
     setState({ kind: "loading", message: "Searching..." });
 
@@ -251,12 +262,20 @@ export default function Popup() {
   }, [searchTopic, isSearching]);
 
   const handleOpenSidePanel = useCallback(() => {
+    if (!isExtensionContext) {
+      console.warn('Not in extension context');
+      return;
+    }
     chrome.runtime.sendMessage({ type: "OPEN_SIDEPANEL" } satisfies ExtensionMessage, () => {
       window.close();
     });
   }, []);
 
   const handleOpenOptions = useCallback(() => {
+    if (!isExtensionContext) {
+      console.warn('Not in extension context');
+      return;
+    }
     chrome.runtime.openOptionsPage();
   }, []);
 
