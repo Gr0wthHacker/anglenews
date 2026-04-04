@@ -49,7 +49,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
       {/* Headline */}
       <button
         onClick={handleOpen}
-        className="text-left text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors leading-snug mb-1.5 line-clamp-2"
+        className="text-left text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors leading-snug mb-1.5 line-clamp-2"
         title={articleData.headline}
       >
         {articleData.headline}
@@ -58,7 +58,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
       {!compact && (
         <>
           {/* Framing summary */}
-          <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-2">
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-2 line-clamp-2">
             {angle.headline_framing}
           </p>
 
