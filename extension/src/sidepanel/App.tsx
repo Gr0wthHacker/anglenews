@@ -15,6 +15,8 @@ import LoadingState from "./components/LoadingState";
 import { DashboardSkeleton } from "./components/SkeletonLoader";
 import { saveToHistory } from "./components/HistoryPanel";
 
+const isExtensionContext = typeof chrome !== 'undefined' && !!chrome.runtime?.id;
+
 type AppState =
   | { status: "idle" }
   | { status: "loading" }
@@ -26,11 +28,15 @@ const App: React.FC = () => {
   const [compact, setCompact] = useState(false);
 
   const triggerAnalysis = useCallback(() => {
+    if (!isExtensionContext) {
+      console.warn('Not in extension context');
+      setState({ status: "error", message: "Not running in extension context." });
+      return;
+    }
     setState({ status: "loading" });
     chrome.runtime
       .sendMessage({ type: "ANALYZE_ARTICLE" } satisfies Pick<ExtensionMessage, "type">)
       .catch(() => {
-        // sendMessage can fail if there's no listener — try extracting from tab directly
         setState({
           status: "error",
           message: "Could not connect to the AngleCheck service worker. Try reloading the extension.",
@@ -40,6 +46,12 @@ const App: React.FC = () => {
 
   // On mount: listen for messages and trigger analysis
   useEffect(() => {
+    if (!isExtensionContext) {
+      console.warn('Not in extension context');
+      setState({ status: "idle" });
+      return;
+    }
+
     const handleMessage = (message: ExtensionMessage) => {
       if (message.type === "ANALYSIS_COMPLETE") {
         setState({ status: "results", data: message.data });
@@ -88,6 +100,11 @@ const App: React.FC = () => {
   }, []);
 
   const handleSearch = useCallback((topic: string) => {
+    if (!isExtensionContext) {
+      console.warn('Not in extension context');
+      setState({ status: "error", message: "Not running in extension context." });
+      return;
+    }
     setState({ status: "loading" });
     chrome.runtime
       .sendMessage({ type: "MANUAL_TOPIC_SEARCH", topic } as ExtensionMessage)

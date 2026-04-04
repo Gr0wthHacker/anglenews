@@ -32,7 +32,7 @@ const AngleSpectrum: React.FC<AngleSpectrumProps> = ({
 
   return (
     <div className="px-3 py-3 space-y-4" onKeyDown={handleKeyDown} tabIndex={0}>
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+      <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
         Other Perspectives
       </h2>
 
@@ -49,7 +49,7 @@ const AngleSpectrum: React.FC<AngleSpectrumProps> = ({
           <div key={cluster.id} className="space-y-2">
             {/* Cluster header */}
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-semibold text-gray-700">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                 {cluster.label}
               </h3>
               <span className="text-[10px] text-gray-400">
@@ -61,7 +61,7 @@ const AngleSpectrum: React.FC<AngleSpectrumProps> = ({
                 size="sm"
               />
               {distinctPercent > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-medium">
                   {distinctPercent}% distinct
                 </span>
               )}
@@ -87,9 +87,9 @@ const AngleSpectrum: React.FC<AngleSpectrumProps> = ({
       })}
 
       {sortedClusters.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-10 px-6 text-center border border-gray-100 rounded-lg mx-1">
+        <div className="flex flex-col items-center justify-center py-10 px-6 text-center border border-gray-100 dark:border-gray-800 rounded-lg mx-1">
           <Newspaper size={28} className="text-gray-300 mb-3" />
-          <p className="text-sm font-medium text-gray-500 mb-1">
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             No alternative perspectives found
           </p>
           <p className="text-xs text-gray-400 leading-relaxed max-w-[240px]">

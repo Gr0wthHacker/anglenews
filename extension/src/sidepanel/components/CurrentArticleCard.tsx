@@ -38,7 +38,7 @@ const CurrentArticleCard: React.FC<CurrentArticleCardProps> = ({
 
   return (
     <div
-      className="bg-white border border-gray-100 rounded-lg mx-3 mt-3 overflow-hidden shadow-sm"
+      className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg mx-3 mt-3 overflow-hidden shadow-sm"
       style={{ borderLeftWidth: "3px", borderLeftColor: borderColor }}
     >
       {/* Header */}
@@ -51,7 +51,7 @@ const CurrentArticleCard: React.FC<CurrentArticleCardProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap mb-2">
-          <span className="text-sm font-semibold text-gray-800">
+          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
             {sourceName}
           </span>
           {sourceBias && <BiasLabel biasRating={sourceBias.biasRating} size="sm" />}
@@ -60,7 +60,7 @@ const CurrentArticleCard: React.FC<CurrentArticleCardProps> = ({
         <div className="flex items-center gap-1.5 flex-wrap">
           <EmotionalRegisterChip register={angle.emotional_register} size="sm" />
           <span
-            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-500"
+            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
             title={`Confidence: ${Math.round(angle.confidence * 100)}%`}
           >
             <span
@@ -80,7 +80,7 @@ const CurrentArticleCard: React.FC<CurrentArticleCardProps> = ({
             <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
               Central Entity
             </span>
-            <p className="text-xs text-gray-700 mt-0.5">
+            <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">
               {angle.central_entity}
             </p>
           </div>
@@ -90,7 +90,7 @@ const CurrentArticleCard: React.FC<CurrentArticleCardProps> = ({
             <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
               Framing
             </span>
-            <p className="text-xs text-gray-700 mt-0.5 leading-relaxed">
+            <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 leading-relaxed">
               {angle.headline_framing}
             </p>
           </div>
@@ -100,7 +100,7 @@ const CurrentArticleCard: React.FC<CurrentArticleCardProps> = ({
             <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
               Causal Attribution
             </span>
-            <p className="text-xs text-gray-700 mt-0.5 leading-relaxed">
+            <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 leading-relaxed">
               {angle.causal_attribution}
             </p>
           </div>

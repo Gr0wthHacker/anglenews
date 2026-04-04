@@ -28,7 +28,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   return (
     <div
       data-card-index={index}
-      className={`bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-colors ${isFocused ? "ring-2 ring-blue-500" : ""}`}
+      className={`bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg p-3 hover:border-gray-200 dark:hover:border-gray-600 transition-colors ${isFocused ? "ring-2 ring-blue-500" : ""}`}
     >
       {/* Source row */}
       <div className="flex items-center gap-2 mb-1.5">
@@ -38,7 +38,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
           className="w-4 h-4 rounded-sm shrink-0"
           loading="lazy"
         />
-        <span className="text-xs font-medium text-gray-600 truncate">
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate">
           {sourceName}
         </span>
         {sourceBias && (

@@ -20,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({ topic, isCompact, onToggleCompact, comp
   };
 
   return (
-    <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 bg-white sticky top-0 z-20">
+    <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-20">
       <div className="flex items-center gap-2 min-w-0">
         {/* Logo */}
         <span
@@ -36,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({ topic, isCompact, onToggleCompact, comp
         {topic && (
           <>
             <span className="text-gray-300 shrink-0">/</span>
-            <span className="text-xs text-gray-500 truncate" title={topic}>
+            <span className="text-xs text-gray-500 dark:text-gray-400 truncate" title={topic}>
               {topic}
             </span>
           </>
@@ -52,14 +52,14 @@ const Header: React.FC<HeaderProps> = ({ topic, isCompact, onToggleCompact, comp
         {comparison && <ShareButton comparison={comparison} />}
         <button
           onClick={onToggleCompact}
-          className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+          className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           title={isCompact ? "Expand view" : "Compact view"}
         >
           {isCompact ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
         </button>
         <button
           onClick={handleOpenOptions}
-          className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+          className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           title="Settings"
         >
           <Settings size={14} />
