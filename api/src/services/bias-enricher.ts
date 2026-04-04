@@ -118,3 +118,8 @@ export function getAllSources(): SourceBias[] {
 export function getSourcesByBias(rating: BiasRating): SourceBias[] {
   return Array.from(biasMap.values()).filter((s) => s.biasRating === rating);
 }
+
+/**
+ * Alias for getSourceBias — used by route handlers.
+ */
+export const getBiasForDomain = getSourceBias;
