@@ -12,6 +12,7 @@ import {
   cacheComparison,
 } from "../services/cache.js";
 import { config } from "../lib/config.js";
+import { validateBody } from "../middleware/validator.js";
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
@@ -24,39 +25,19 @@ import type {
 
 const analyzeRoute = new Hono();
 
-analyzeRoute.post("/", async (c) => {
+analyzeRoute.post(
+  "/",
+  validateBody({
+    headline: "string",
+    url: "string",
+    domain: "string",
+    body_excerpt: "optional_string",
+  }),
+  async (c) => {
   const startTime = Date.now();
 
-  // ── Step 1: Validate request body ─────────────────────────────────────
-  let body: AnalyzeRequest;
-  try {
-    body = await c.req.json<AnalyzeRequest>();
-  } catch {
-    return c.json<AnalyzeResponse>(
-      { success: false, comparison: null, error: "Invalid JSON body", cached: false },
-      400
-    );
-  }
-
-  if (!body.headline || typeof body.headline !== "string") {
-    return c.json<AnalyzeResponse>(
-      { success: false, comparison: null, error: "Missing required field: headline", cached: false },
-      400
-    );
-  }
-  if (!body.url || typeof body.url !== "string") {
-    return c.json<AnalyzeResponse>(
-      { success: false, comparison: null, error: "Missing required field: url", cached: false },
-      400
-    );
-  }
-  if (!body.domain || typeof body.domain !== "string") {
-    return c.json<AnalyzeResponse>(
-      { success: false, comparison: null, error: "Missing required field: domain", cached: false },
-      400
-    );
-  }
-
+  // Body already validated by middleware
+  const body = c.get("validatedBody") as AnalyzeRequest;
   const bodyExcerpt = body.body_excerpt || "";
 
   try {
