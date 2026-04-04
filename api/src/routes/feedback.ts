@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { storeFeedback, getFeedbackStats } from "../services/cache.js";
+import { validateBody } from "../middleware/validator.js";
 
 const feedbackRoute = new Hono();
 
@@ -9,24 +10,18 @@ interface FeedbackRequest {
   comment?: string;
 }
 
-feedbackRoute.post("/", async (c) => {
-  let body: FeedbackRequest;
-  try {
-    body = await c.req.json<FeedbackRequest>();
-  } catch {
-    return c.json({ success: false, error: "Invalid JSON body" }, 400);
-  }
+feedbackRoute.post(
+  "/",
+  validateBody({
+    comparisonId: "string",
+    rating: "number",
+    comment: "optional_string",
+  }),
+  async (c) => {
+  const body = c.get("validatedBody") as FeedbackRequest;
 
-  // Validate required fields
-  if (!body.comparisonId || typeof body.comparisonId !== "string") {
-    return c.json(
-      { success: false, error: "Missing required field: comparisonId" },
-      400
-    );
-  }
-
+  // Additional validation: rating range
   if (
-    typeof body.rating !== "number" ||
     body.rating < 1 ||
     body.rating > 5 ||
     !Number.isInteger(body.rating)
