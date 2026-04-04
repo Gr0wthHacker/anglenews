@@ -36,8 +36,8 @@ analyzeRoute.post(
   async (c) => {
   const startTime = Date.now();
 
-  // Body already validated by middleware
-  const body = c.get("validatedBody") as AnalyzeRequest;
+  // Body already validated by middleware; Hono caches the parsed JSON
+  const body = await c.req.json<AnalyzeRequest>();
   const bodyExcerpt = body.body_excerpt || "";
 
   try {

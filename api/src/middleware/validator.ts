@@ -25,9 +25,6 @@ export function validateBody(
       );
     }
 
-    // Store parsed body so downstream handlers don't need to re-parse
-    c.set("validatedBody", body);
-
     const errors: string[] = [];
 
     for (const [field, type] of Object.entries(schema)) {
