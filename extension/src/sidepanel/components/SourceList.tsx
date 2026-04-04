@@ -36,15 +36,15 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
   };
 
   return (
-    <div className="mx-3 my-3 border border-gray-100 rounded-lg overflow-hidden">
+    <div className="mx-3 my-3 border border-gray-100 dark:border-gray-700 rounded-lg overflow-hidden">
       {/* Toggle header */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+        className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       >
         <div className="flex items-center gap-2">
           <BookOpen size={14} className="text-gray-400" />
-          <span className="text-xs font-semibold text-gray-600">
+          <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
             All Sources ({articles.length})
           </span>
         </div>
@@ -56,7 +56,7 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
       </button>
 
       {isOpen && (
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-gray-50 dark:divide-gray-800">
           {sorted.map((item) => {
             const { article, angle, sentiment, sourceBias } = item;
             const sourceName =
@@ -64,11 +64,11 @@ const SourceList: React.FC<SourceListProps> = ({ articles }) => {
             const isExpanded = expandedUrl === article.url;
 
             return (
-              <div key={article.url} className="bg-white">
+              <div key={article.url} className="bg-white dark:bg-gray-900">
                 {/* Row */}
                 <button
                   onClick={() => toggleExpanded(article.url)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   {isExpanded ? (
                     <ChevronDown size={10} className="text-gray-300 shrink-0" />

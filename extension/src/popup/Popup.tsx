@@ -44,6 +44,8 @@ const REGISTER_CONFIG: Record<EmotionalRegister, { label: string; color: string;
   dismissive: { label: "Dismissive", color: "text-amber-700", bg: "bg-amber-50" },
 };
 
+const isExtensionContext = typeof chrome !== 'undefined' && !!chrome.runtime?.id;
+
 type PopupState =
   | { kind: "loading"; message: string }
   | { kind: "not-article" }
@@ -119,6 +121,8 @@ export default function Popup() {
 
   // Listen for broadcast messages from the service worker
   useEffect(() => {
+    if (!isExtensionContext) return;
+
     function onMessage(message: ExtensionMessage) {
       if (message.type === "ANALYSIS_COMPLETE") {
         setState({ kind: "results", data: message.data });
@@ -135,6 +139,12 @@ export default function Popup() {
   useEffect(() => {
     if (hasInitiated.current) return;
     hasInitiated.current = true;
+
+    if (!isExtensionContext) {
+      console.warn('Not in extension context');
+      setState({ kind: "not-article" });
+      return;
+    }
 
     chrome.runtime.sendMessage({ type: "GET_ANALYSIS_STATUS" } satisfies ExtensionMessage, (response) => {
       if (chrome.runtime.lastError) {

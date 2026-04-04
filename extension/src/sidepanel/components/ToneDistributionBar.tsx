@@ -38,13 +38,13 @@ const ToneDistributionBar: React.FC<ToneDistributionBarProps> = ({
 
   return (
     <div className="mx-3 my-3">
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+      <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
         Tone Distribution
       </h2>
 
       {/* Stacked bar */}
       <div
-        className="flex h-5 rounded-full overflow-hidden bg-gray-100"
+        className="flex h-5 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700"
         role="img"
         aria-label={`Tone distribution: ${activeRegisters.map((r) => `${REGISTER_LABELS[r]} ${Math.round((distribution[r] / total) * 100)}%`).join(", ")}`}
       >
@@ -76,10 +76,10 @@ const ToneDistributionBar: React.FC<ToneDistributionBarProps> = ({
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: REGISTER_COLORS[register] }}
               />
-              <span className="text-[10px] text-gray-500">
+              <span className="text-[10px] text-gray-500 dark:text-gray-400">
                 {REGISTER_LABELS[register]}
               </span>
-              <span className="text-[10px] font-medium text-gray-600">
+              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">
                 {count}
               </span>
             </div>
