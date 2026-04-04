@@ -1,13 +1,12 @@
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import type { BiasRating, FactualRating, SourceBias } from "../../../shared/types.js";
 
 // ─── Load bias data ─────────────────────────────────────────────────────────
 
-// With NodeNext module resolution we resolve the JSON path relative to this file
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Resolve bias-ratings.json relative to the project root.
+// In compiled output (__dirname = api/dist/services), walk up to project root.
+// In tsx dev mode (__dirname = api/src/services), same relative traversal works.
 const BIAS_DATA_PATH = resolve(__dirname, "..", "..", "..", "..", "shared", "bias-ratings.json");
 
 interface BiasEntry {
