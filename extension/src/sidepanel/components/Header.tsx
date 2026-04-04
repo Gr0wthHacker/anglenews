@@ -1,13 +1,20 @@
 import React from "react";
 import { Settings, Minimize2, Maximize2 } from "lucide-react";
+import type { AngleComparison } from "@shared/types";
+import TopicSearch from "./TopicSearch";
+import HistoryPanel from "./HistoryPanel";
+import ShareButton from "./ShareButton";
 
 interface HeaderProps {
   topic: string | null;
-  compact: boolean;
+  isCompact: boolean;
   onToggleCompact: () => void;
+  comparison?: AngleComparison | null;
+  onLoadComparison?: (comparison: AngleComparison) => void;
+  onSearch?: (topic: string) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ topic, compact, onToggleCompact }) => {
+const Header: React.FC<HeaderProps> = ({ topic, isCompact, onToggleCompact, comparison, onLoadComparison, onSearch }) => {
   const handleOpenOptions = () => {
     chrome.runtime.openOptionsPage();
   };
@@ -34,15 +41,21 @@ const Header: React.FC<HeaderProps> = ({ topic, compact, onToggleCompact }) => {
             </span>
           </>
         )}
+
+        {onSearch && <TopicSearch onSearch={onSearch} />}
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
+        {onLoadComparison && (
+          <HistoryPanel onLoadComparison={onLoadComparison} />
+        )}
+        {comparison && <ShareButton comparison={comparison} />}
         <button
           onClick={onToggleCompact}
           className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
-          title={compact ? "Expand view" : "Compact view"}
+          title={isCompact ? "Expand view" : "Compact view"}
         >
-          {compact ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+          {isCompact ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
         </button>
         <button
           onClick={handleOpenOptions}

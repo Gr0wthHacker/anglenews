@@ -133,6 +133,8 @@ export interface AnalyzeResponse {
   comparison: AngleComparison | null;
   error: string | null;
   cached: boolean;
+  partialAnalysis?: boolean;
+  code?: string;
 }
 
 export interface TrendingTopic {
@@ -145,15 +147,21 @@ export interface TrendingTopic {
 
 // ─── Extension Messaging ─────────────────────────────────────────────────────
 
+export type AnalysisStatus = "idle" | "extracting" | "analyzing" | "complete" | "error";
+
 export type ExtensionMessage =
   | { type: "EXTRACT_ARTICLE" }
   | { type: "ARTICLE_EXTRACTED"; data: ArticleData }
+  | { type: "EXTRACTION_FAILED"; error: string }
   | { type: "ANALYZE_ARTICLE"; data: ArticleData }
   | { type: "ANALYSIS_COMPLETE"; data: AngleComparison }
   | { type: "ANALYSIS_ERROR"; error: string }
+  | { type: "GET_ANALYSIS_STATUS" }
+  | { type: "ANALYSIS_STATUS"; status: AnalysisStatus; data?: AngleComparison | string }
   | { type: "GET_CACHED"; url: string }
   | { type: "CACHED_RESULT"; data: AngleComparison | null }
-  | { type: "OPEN_SIDEPANEL" };
+  | { type: "OPEN_SIDEPANEL" }
+  | { type: "MANUAL_TOPIC_SEARCH"; topic: string };
 
 // ─── User Preferences ───────────────────────────────────────────────────────
 

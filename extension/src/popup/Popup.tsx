@@ -10,6 +10,7 @@ import type {
   AnalyzedArticle,
   AngleCluster,
   AngleComparison,
+  ExtensionMessage,
 } from "@shared/types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -118,10 +119,10 @@ export default function Popup() {
 
   // Listen for broadcast messages from the service worker
   useEffect(() => {
-    function onMessage(message: any) {
-      if (message.type === "ANALYSIS_COMPLETE" && message.data) {
+    function onMessage(message: ExtensionMessage) {
+      if (message.type === "ANALYSIS_COMPLETE") {
         setState({ kind: "results", data: message.data });
-      } else if (message.type === "ANALYSIS_ERROR" && message.error) {
+      } else if (message.type === "ANALYSIS_ERROR") {
         setState({ kind: "error", message: message.error });
       }
     }
@@ -135,7 +136,7 @@ export default function Popup() {
     if (hasInitiated.current) return;
     hasInitiated.current = true;
 
-    chrome.runtime.sendMessage({ type: "GET_ANALYSIS_STATUS" }, (response) => {
+    chrome.runtime.sendMessage({ type: "GET_ANALYSIS_STATUS" } satisfies ExtensionMessage, (response) => {
       if (chrome.runtime.lastError) {
         setState({ kind: "error", message: "Could not connect to the extension background." });
         return;
@@ -171,7 +172,7 @@ export default function Popup() {
         return;
       }
 
-      chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_ARTICLE" }, (response) => {
+      chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_ARTICLE" } satisfies ExtensionMessage, (response) => {
         if (chrome.runtime.lastError || !response) {
           setState({ kind: "not-article" });
           return;
@@ -192,7 +193,7 @@ export default function Popup() {
 
         setState({ kind: "loading", message: "Analyzing..." });
         chrome.runtime.sendMessage(
-          { type: "ANALYZE_ARTICLE", data: articleData },
+          { type: "ANALYZE_ARTICLE", data: articleData } satisfies ExtensionMessage,
           () => {
             if (chrome.runtime.lastError) {
               setState({ kind: "error", message: "Failed to start analysis." });
@@ -229,7 +230,7 @@ export default function Popup() {
     };
 
     chrome.runtime.sendMessage(
-      { type: "ANALYZE_ARTICLE", data: syntheticArticle },
+      { type: "ANALYZE_ARTICLE", data: syntheticArticle } satisfies ExtensionMessage,
       () => {
         setIsSearching(false);
         if (chrome.runtime.lastError) {
@@ -240,7 +241,7 @@ export default function Popup() {
   }, [searchTopic, isSearching]);
 
   const handleOpenSidePanel = useCallback(() => {
-    chrome.runtime.sendMessage({ type: "OPEN_SIDEPANEL" }, () => {
+    chrome.runtime.sendMessage({ type: "OPEN_SIDEPANEL" } satisfies ExtensionMessage, () => {
       window.close();
     });
   }, []);

@@ -46,23 +46,42 @@ const ShareButton: React.FC<ShareButtonProps> = ({ comparison }) => {
     setIsOpen(false);
   };
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("Copied to clipboard!");
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast("Copied to clipboard!");
+    }
+  };
+
   const handleCopyText = async () => {
     const text = generatePlainTextSummary(comparison);
-    await navigator.clipboard.writeText(text);
-    showToast("Copied to clipboard!");
+    await copyToClipboard(text);
   };
 
   const handleCopyMarkdown = async () => {
     const md = generateMarkdownSummary(comparison);
-    await navigator.clipboard.writeText(md);
-    showToast("Copied to clipboard!");
+    await copyToClipboard(md);
   };
 
   const handleOpenInTab = () => {
     const html = generateStandaloneHTML(comparison);
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    chrome.tabs.create({ url });
+    try {
+      chrome.tabs.create({ url });
+    } catch {
+      window.open(url, '_blank');
+    }
     setIsOpen(false);
   };
 
@@ -168,38 +187,44 @@ function generatePlainTextSummary(data: AngleComparison): string {
 
 function generateMarkdownSummary(data: AngleComparison): string {
   const { topic, currentArticle, clusters, coverageGaps, totalSourcesAnalyzed } = data;
-  const currentSource =
+  const safeTopic = escapeHtml(topic);
+  const safeHeadline = escapeHtml(currentArticle.article.headline);
+  const safeUrl = encodeURI(currentArticle.article.url);
+  const currentSource = escapeHtml(
     currentArticle.sourceBias?.name ||
     currentArticle.article.siteName ||
-    currentArticle.article.domain;
+    currentArticle.article.domain,
+  );
   const currentBias = currentArticle.sourceBias?.biasRating
-    ? ` (${formatBiasLabel(currentArticle.sourceBias.biasRating)})`
+    ? ` (${escapeHtml(formatBiasLabel(currentArticle.sourceBias.biasRating))})`
     : "";
+  const safeFraming = escapeHtml(currentArticle.angle.headline_framing);
 
   const lines: string[] = [];
-  lines.push(`# AngleCheck: "${topic}"`);
+  lines.push(`# AngleCheck: "${safeTopic}"`);
   lines.push(`> ${totalSourcesAnalyzed} sources analyzed`);
   lines.push("");
   lines.push("## Your Article");
   lines.push(
-    `**[${currentArticle.article.headline}](${currentArticle.article.url})** on ${currentSource}${currentBias}`,
+    `**[${safeHeadline}](${safeUrl})** on ${currentSource}${currentBias}`,
   );
   lines.push("");
-  lines.push(`*Framing:* ${currentArticle.angle.headline_framing}`);
+  lines.push(`*Framing:* ${safeFraming}`);
   lines.push("");
   lines.push(
     `## ${clusters.length} Distinct Angle${clusters.length !== 1 ? "s" : ""}`,
   );
 
   clusters.forEach((cluster, i) => {
+    const safeLabel = escapeHtml(cluster.label);
     const sources = cluster.articles
       .map(
         (a) =>
-          a.sourceBias?.name || a.article.siteName || a.article.domain,
+          escapeHtml(a.sourceBias?.name || a.article.siteName || a.article.domain),
       )
       .join(", ");
     lines.push(
-      `${i + 1}. **${cluster.label}** (${cluster.articles.length} source${cluster.articles.length !== 1 ? "s" : ""}): ${sources}`,
+      `${i + 1}. **${safeLabel}** (${cluster.articles.length} source${cluster.articles.length !== 1 ? "s" : ""}): ${sources}`,
     );
   });
 
@@ -207,7 +232,7 @@ function generateMarkdownSummary(data: AngleComparison): string {
     lines.push("");
     lines.push("## Coverage Gaps");
     coverageGaps.forEach((gap) => {
-      lines.push(`- ${gap.description} (missing from ${currentSource})`);
+      lines.push(`- ${escapeHtml(gap.description)} (missing from ${currentSource})`);
     });
   }
 
@@ -230,7 +255,11 @@ function generateStandaloneHTML(data: AngleComparison): string {
     .replace(/^\d+\. (.+)$/gm, "<li>$1</li>")
     .replace(/^- (.+)$/gm, "<li>$1</li>")
     .replace(/^---$/gm, "<hr>")
-    .replace(/\*\*\[(.+?)\]\((.+?)\)\*\*/g, '<a href="$2"><strong>$1</strong></a>')
+    .replace(/\*\*\[(.+?)\]\((.+?)\)\*\*/g, (_match, text, url) => {
+      const safeUrl = url.replace(/["<>]/g, '');
+      if (!/^https?:\/\//i.test(safeUrl)) return `<strong>${text}</strong>`;
+      return `<a href="${safeUrl}" rel="noopener noreferrer"><strong>${text}</strong></a>`;
+    })
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/\n{2,}/g, "\n")
@@ -278,7 +307,8 @@ function escapeHtml(str: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export default ShareButton;

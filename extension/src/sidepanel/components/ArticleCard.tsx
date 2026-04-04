@@ -8,11 +8,15 @@ import SentimentBar from "./SentimentBar";
 interface ArticleCardProps {
   article: AnalyzedArticle;
   compact?: boolean;
+  index?: number;
+  isFocused?: boolean;
 }
 
 const ArticleCard: React.FC<ArticleCardProps> = ({
   article,
   compact = false,
+  index,
+  isFocused = false,
 }) => {
   const { article: articleData, angle, sentiment, sourceBias } = article;
   const sourceName = sourceBias?.name || articleData.siteName || articleData.domain;
@@ -22,7 +26,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-colors">
+    <div
+      data-card-index={index}
+      className={`bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-colors ${isFocused ? "ring-2 ring-blue-500" : ""}`}
+    >
       {/* Source row */}
       <div className="flex items-center gap-2 mb-1.5">
         <img

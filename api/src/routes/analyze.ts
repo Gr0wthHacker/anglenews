@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { normalizeTopic } from "../services/topic-normalizer.js";
 import { fetchRelatedArticles } from "../services/news-fetcher.js";
 import { deduplicateArticles } from "../services/deduplicator.js";
-import { extractAngles } from "../services/angle-extractor.js";
+import { extractAngles, extractAngle, calculateSentiment } from "../services/angle-extractor.js";
 import { clusterArticles } from "../services/clusterer.js";
 import { getBiasForDomain } from "../services/bias-enricher.js";
 import {
@@ -11,6 +11,7 @@ import {
   getCachedComparison,
   cacheComparison,
 } from "../services/cache.js";
+import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../lib/config.js";
 import { validateBody } from "../middleware/validator.js";
 import type {
@@ -61,10 +62,25 @@ analyzeRoute.post(
 
     // ── Step 4: Fetch related articles ────────────────────────────────────
     console.log(`[analyze] Fetching articles for topic: ${normalized.topic}`);
-    const rawArticles = await fetchRelatedArticles(
-      normalized.searchQueries[0] || normalized.topic,
-      normalized.entities
-    );
+    let rawArticles: import("../services/news-fetcher.js").RawArticle[];
+    try {
+      rawArticles = await fetchRelatedArticles(
+        normalized.searchQueries[0] || normalized.topic,
+        normalized.entities
+      );
+    } catch (fetchError) {
+      console.error("[analyze] All news APIs failed:", fetchError);
+      return c.json<AnalyzeResponse>(
+        {
+          success: false,
+          comparison: null,
+          error: "All external news services failed. Please try again later.",
+          cached: false,
+          code: "EXTERNAL_SERVICE_ERROR",
+        },
+        502
+      );
+    }
 
     if (rawArticles.length === 0) {
       return c.json<AnalyzeResponse>(
@@ -73,6 +89,7 @@ analyzeRoute.post(
           comparison: null,
           error: "No related articles found for this topic",
           cached: false,
+          code: "NO_ARTICLES_FOUND",
         },
         404
       );
@@ -85,15 +102,79 @@ analyzeRoute.post(
     // ── Step 6: Analyze top N articles via LLM ────────────────────────────
     const toAnalyze = deduplicated.slice(0, config.maxSourcesPerQuery);
     console.log(`[analyze] Analyzing ${toAnalyze.length} articles via LLM`);
-    const analyzed = await extractAngles(toAnalyze);
+
+    let analyzed: import("../services/angle-extractor.js").ExtractedAngle[];
+    let angleExtractionFailed = false;
+
+    try {
+      analyzed = await extractAngles(toAnalyze);
+    } catch (llmError) {
+      console.error("[analyze] Claude API failure during angle extraction:", llmError);
+      analyzed = [];
+      angleExtractionFailed = true;
+    }
+
+    // If angle extraction returned nothing and it was an API failure, return partial
+    if (analyzed.length === 0 && angleExtractionFailed) {
+      // Build partial response with article metadata but no angle analysis
+      const partialArticles: AnalyzedArticle[] = deduplicated.slice(0, config.maxSourcesPerQuery).map((raw) => ({
+        article: rawArticleToArticleData(raw),
+        angle: emptyAngleAnalysis(),
+        sentiment: { positive: 0, negative: 0, neutral: 1, compound: 0 },
+        sourceBias: getBiasForDomain(raw.domain),
+      }));
+
+      const currentPartial: AnalyzedArticle = {
+        article: {
+          headline: body.headline,
+          body: bodyExcerpt,
+          byline: null,
+          siteName: null,
+          url: body.url,
+          domain: body.domain,
+          publishDate: null,
+          imageUrl: null,
+        },
+        angle: emptyAngleAnalysis(),
+        sentiment: { positive: 0, negative: 0, neutral: 1, compound: 0 },
+        sourceBias: getBiasForDomain(body.domain),
+      };
+
+      const comparison: AngleComparison = {
+        id: uuidv4(),
+        topic: body.headline,
+        normalizedTopic: normalized.topic,
+        currentArticle: currentPartial,
+        clusters: [],
+        coverageGaps: [],
+        toneDistribution: { alarm: 0, neutral: 1, optimistic: 0, adversarial: 0, empathetic: 0, dismissive: 0 },
+        totalSourcesFetched: deduplicated.length,
+        totalSourcesAnalyzed: 0,
+        timestamp: new Date().toISOString(),
+        cachedAt: null,
+      };
+
+      return c.json<AnalyzeResponse>(
+        {
+          success: true,
+          comparison,
+          error: "Angle analysis unavailable — showing source overview only",
+          cached: false,
+          partialAnalysis: true,
+          code: "CLAUDE_API_UNAVAILABLE",
+        },
+        503
+      );
+    }
 
     if (analyzed.length === 0) {
       return c.json<AnalyzeResponse>(
         {
           success: false,
           comparison: null,
-          error: "Failed to analyze articles",
+          error: "Failed to analyze articles — no articles had sufficient content",
           cached: false,
+          code: "ANALYSIS_FAILED",
         },
         500
       );
@@ -114,8 +195,10 @@ analyzeRoute.post(
     );
 
     if (!currentArticle) {
-      // The user's article might not be in our fetched results; analyze it separately
-      const currentAngle = analyzed[0]; // Use first analyzed as fallback basis
+      // The user's article is not in fetched results — analyze it separately
+      const client = new Anthropic({ apiKey: config.anthropicApiKey });
+      const currentAngle = await extractAngle(client, body.headline, body.body_excerpt || body.headline);
+      const currentSentiment = calculateSentiment(body.body_excerpt || body.headline);
       currentArticle = {
         article: {
           headline: body.headline,
@@ -127,8 +210,8 @@ analyzeRoute.post(
           publishDate: null,
           imageUrl: null,
         },
-        angle: currentAngle.angle,
-        sentiment: currentAngle.sentiment,
+        angle: currentAngle,
+        sentiment: currentSentiment,
         sourceBias: getBiasForDomain(body.domain),
       };
     }
@@ -170,17 +253,31 @@ analyzeRoute.post(
       cached: false,
     });
   } catch (error) {
-    console.error("[analyze] Error:", error);
+    console.error("[analyze] Unexpected error:", error);
     const message =
       error instanceof Error ? error.message : "Internal server error";
     return c.json<AnalyzeResponse>(
-      { success: false, comparison: null, error: message, cached: false },
+      { success: false, comparison: null, error: message, cached: false, code: "INTERNAL_ERROR" },
       500
     );
   }
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function emptyAngleAnalysis(): import("../../../shared/types.js").AngleAnalysis {
+  return {
+    headline_framing: "",
+    central_entity: "",
+    causal_attribution: "",
+    emotional_register: "neutral",
+    solution_frame: "",
+    key_omissions: [],
+    quote_sources: [],
+    statistical_anchoring: "none",
+    confidence: 0,
+  };
+}
 
 function rawArticleToArticleData(
   raw: import("../services/news-fetcher.js").RawArticle

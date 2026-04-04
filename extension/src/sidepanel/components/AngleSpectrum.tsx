@@ -1,7 +1,9 @@
 import React from "react";
+import { Newspaper } from "lucide-react";
 import type { AngleCluster } from "@shared/types";
 import EmotionalRegisterChip from "./EmotionalRegisterChip";
 import ArticleCard from "./ArticleCard";
+import { useKeyboardNav } from "../hooks/useKeyboardNav";
 
 interface AngleSpectrumProps {
   clusters: AngleCluster[];
@@ -17,8 +19,19 @@ const AngleSpectrum: React.FC<AngleSpectrumProps> = ({
     (a, b) => b.distinctiveness - a.distinctiveness,
   );
 
+  // Calculate total article count for keyboard navigation
+  const totalArticles = sortedClusters.reduce(
+    (sum, cluster) => sum + cluster.articles.length,
+    0,
+  );
+
+  const { handleKeyDown, isFocused } = useKeyboardNav(totalArticles);
+
+  // Track a running index across all clusters for keyboard nav
+  let globalIndex = 0;
+
   return (
-    <div className="px-3 py-3 space-y-4">
+    <div className="px-3 py-3 space-y-4" onKeyDown={handleKeyDown} tabIndex={0}>
       <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
         Other Perspectives
       </h2>
@@ -56,22 +69,34 @@ const AngleSpectrum: React.FC<AngleSpectrumProps> = ({
 
             {/* Article cards */}
             <div className="space-y-2">
-              {sortedArticles.map((article, idx) => (
-                <ArticleCard
-                  key={`${article.article.url}-${idx}`}
-                  article={article}
-                  compact={compact}
-                />
-              ))}
+              {sortedArticles.map((article, idx) => {
+                const cardIndex = globalIndex++;
+                return (
+                  <ArticleCard
+                    key={`${article.article.url}-${idx}`}
+                    article={article}
+                    compact={compact}
+                    index={cardIndex}
+                    isFocused={isFocused(cardIndex)}
+                  />
+                );
+              })}
             </div>
           </div>
         );
       })}
 
       {sortedClusters.length === 0 && (
-        <p className="text-xs text-gray-400 text-center py-6">
-          No alternative perspectives found yet.
-        </p>
+        <div className="flex flex-col items-center justify-center py-10 px-6 text-center border border-gray-100 rounded-lg mx-1">
+          <Newspaper size={28} className="text-gray-300 mb-3" />
+          <p className="text-sm font-medium text-gray-500 mb-1">
+            No alternative perspectives found
+          </p>
+          <p className="text-xs text-gray-400 leading-relaxed max-w-[240px]">
+            Try searching for a broader topic or check back later as more
+            outlets cover this story.
+          </p>
+        </div>
       )}
     </div>
   );

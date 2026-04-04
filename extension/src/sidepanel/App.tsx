@@ -12,6 +12,8 @@ import CoverageGapAlert from "./components/CoverageGapAlert";
 import ToneDistributionBar from "./components/ToneDistributionBar";
 import SourceList from "./components/SourceList";
 import LoadingState from "./components/LoadingState";
+import { DashboardSkeleton } from "./components/SkeletonLoader";
+import { saveToHistory } from "./components/HistoryPanel";
 
 type AppState =
   | { status: "idle" }
@@ -41,6 +43,7 @@ const App: React.FC = () => {
     const handleMessage = (message: ExtensionMessage) => {
       if (message.type === "ANALYSIS_COMPLETE") {
         setState({ status: "results", data: message.data });
+        saveToHistory(message.data).catch(() => {/* ignore storage errors */});
       } else if (message.type === "ANALYSIS_ERROR") {
         setState({ status: "error", message: message.error });
       }
@@ -80,6 +83,22 @@ const App: React.FC = () => {
     triggerAnalysis();
   };
 
+  const handleLoadComparison = useCallback((comparison: AngleComparison) => {
+    setState({ status: "results", data: comparison });
+  }, []);
+
+  const handleSearch = useCallback((topic: string) => {
+    setState({ status: "loading" });
+    chrome.runtime
+      .sendMessage({ type: "MANUAL_TOPIC_SEARCH", topic } as ExtensionMessage)
+      .catch(() => {
+        setState({
+          status: "error",
+          message: "Could not send search request to the service worker.",
+        });
+      });
+  }, []);
+
   // Collect all articles from clusters for SourceList
   const allClusterArticles: AnalyzedArticle[] =
     state.status === "results"
@@ -98,8 +117,11 @@ const App: React.FC = () => {
       {/* Header */}
       <Header
         topic={state.status === "results" ? state.data.topic : null}
-        compact={compact}
+        isCompact={compact}
         onToggleCompact={() => setCompact((prev) => !prev)}
+        comparison={state.status === "results" ? state.data : null}
+        onLoadComparison={handleLoadComparison}
+        onSearch={handleSearch}
       />
 
       {/* Content */}
@@ -121,7 +143,14 @@ const App: React.FC = () => {
         )}
 
         {/* Loading */}
-        {state.status === "loading" && <LoadingState />}
+        {state.status === "loading" && (
+          <div className="relative">
+            <DashboardSkeleton />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <LoadingState />
+            </div>
+          </div>
+        )}
 
         {/* Error */}
         {state.status === "error" && (

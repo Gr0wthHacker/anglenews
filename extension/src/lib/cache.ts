@@ -15,6 +15,36 @@ const CACHE_PREFIX = "ac_cache_";
 // ─── ExtensionCache ─────────────────────────────────────────────────────────
 
 class ExtensionCache {
+  private pendingRequests = new Map<string, Promise<any>>();
+
+  /**
+   * Check the cache first, then deduplicate concurrent fetches for the same key.
+   * If a fetch for this key is already in-flight, the same promise is returned
+   * instead of issuing a duplicate request.
+   */
+  async getOrFetch<T>(key: string, fetchFn: () => Promise<T>, ttlMs?: number): Promise<T> {
+    // Check cache first
+    const cached = await this.get<T>(key);
+    if (cached !== null) return cached;
+
+    // Check if there's already a pending request for this key
+    const pending = this.pendingRequests.get(key);
+    if (pending) return pending as Promise<T>;
+
+    // Create new request
+    const request = fetchFn().then(async (data) => {
+      await this.set(key, data, ttlMs);
+      this.pendingRequests.delete(key);
+      return data;
+    }).catch((err) => {
+      this.pendingRequests.delete(key);
+      throw err;
+    });
+
+    this.pendingRequests.set(key, request);
+    return request;
+  }
+
   /**
    * Retrieve a cached value by key. Returns null if the entry does not exist
    * or has expired. Expired entries are removed as a side-effect.

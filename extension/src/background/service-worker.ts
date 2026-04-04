@@ -1,5 +1,6 @@
 import { CACHE_TTL_MS, MAX_BODY_LENGTH } from "@shared/constants";
 import type {
+  AnalysisStatus,
   AngleComparison,
   AnalyzeRequest,
   ArticleData,
@@ -9,8 +10,6 @@ import { cache } from "../lib/cache";
 import { api, ApiError, ApiTimeoutError, ApiNetworkError } from "../lib/api-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-type AnalysisStatus = "idle" | "extracting" | "analyzing" | "complete" | "error";
 
 interface TabState {
   status: AnalysisStatus;
@@ -83,39 +82,33 @@ async function analyzeArticle(
     // 2. Build fingerprint
     const fingerprint = buildFingerprint(article.headline, article.domain);
 
-    // 3. Check local cache
-    const cached = await cache.get<AngleComparison>(fingerprint);
-    if (cached) {
-      setTabState(tabId, { status: "complete", data: cached });
-      broadcast({ type: "ANALYSIS_COMPLETE", data: cached });
-      return;
-    }
-
-    // 4. Cache miss — call backend API
+    // 3. Use getOrFetch to check cache and deduplicate in-flight requests
     setTabState(tabId, { status: "analyzing" });
 
-    const request: AnalyzeRequest = {
-      headline: article.headline,
-      body_excerpt: article.body.slice(0, MAX_BODY_LENGTH),
-      url: article.url,
-      domain: article.domain,
-    };
+    const comparison = await cache.getOrFetch<AngleComparison>(
+      fingerprint,
+      async () => {
+        const request: AnalyzeRequest = {
+          headline: article.headline,
+          body_excerpt: article.body.slice(0, MAX_BODY_LENGTH),
+          url: article.url,
+          domain: article.domain,
+        };
 
-    const response = await api.analyze(request);
+        const response = await api.analyze(request);
 
-    if (!response.success || !response.comparison) {
-      const errorMsg = response.error || "Analysis returned no comparison data.";
-      setTabState(tabId, { status: "error", error: errorMsg });
-      broadcast({ type: "ANALYSIS_ERROR", error: errorMsg });
-      return;
-    }
+        if (!response.success || !response.comparison) {
+          throw new Error(response.error || "Analysis returned no comparison data.");
+        }
 
-    // 5. Cache the result
-    await cache.set(fingerprint, response.comparison, CACHE_TTL_MS);
+        return response.comparison;
+      },
+      CACHE_TTL_MS,
+    );
 
-    // 6. Update state and broadcast
-    setTabState(tabId, { status: "complete", data: response.comparison });
-    broadcast({ type: "ANALYSIS_COMPLETE", data: response.comparison });
+    // 4. Update state and broadcast
+    setTabState(tabId, { status: "complete", data: comparison });
+    broadcast({ type: "ANALYSIS_COMPLETE", data: comparison });
   } catch (err) {
     let errorMessage: string;
 
