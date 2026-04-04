@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// ─── Mock rss-parser before importing the module ────────────────────────────
+// ─── Shared mock for the rss-parser parseURL method ─────────────────────────
+const mockParseURL = vi.fn();
+
 vi.mock("rss-parser", () => {
-  const MockParser = vi.fn().mockImplementation(() => ({
-    parseURL: vi.fn(),
-  }));
-  return { default: MockParser };
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      parseURL: mockParseURL,
+    })),
+  };
 });
 
 // ─── Mock config ────────────────────────────────────────────────────────────
@@ -18,7 +21,6 @@ vi.mock("../../lib/config.js", () => ({
 
 import { fetchRelatedArticles, type RawArticle } from "../news-fetcher.js";
 import { config } from "../../lib/config.js";
-import Parser from "rss-parser";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -86,6 +88,8 @@ describe("news-fetcher", () => {
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
+    mockParseURL.mockReset();
+    mockParseURL.mockResolvedValue({ items: [] });
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
@@ -99,9 +103,6 @@ describe("news-fetcher", () => {
 
   describe("fetchFromGDELT (via orchestrator)", () => {
     it("returns articles from GDELT when fetch succeeds", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({ items: [] });
-
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
         if (typeof url === "string" && url.includes("gdeltproject.org")) {
           return Promise.resolve(
@@ -114,7 +115,6 @@ describe("news-fetcher", () => {
             ])
           );
         }
-        // Other APIs return empty or fail
         return Promise.resolve({
           ok: true,
           json: async () => ({ status: "success", results: [], data: [] }),
@@ -131,9 +131,6 @@ describe("news-fetcher", () => {
     });
 
     it("handles GDELT returning no articles", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({ items: [] });
-
       globalThis.fetch = vi.fn().mockImplementation(() =>
         Promise.resolve({
           ok: true,
@@ -144,14 +141,44 @@ describe("news-fetcher", () => {
       const results = await fetchRelatedArticles("obscure topic xyz", []);
       expect(results).toEqual([]);
     });
+
+    it("formats GDELT seendate to YYYY-MM-DD", async () => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === "string" && url.includes("gdeltproject.org")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              articles: [
+                {
+                  title: "Date Test Article",
+                  url: "https://example.com/date-test",
+                  seendate: "20260315T143022Z",
+                  socialimage: "",
+                  domain: "example.com",
+                  sourcecountry: "US",
+                },
+              ],
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: "success", results: [], data: [] }),
+        });
+      });
+
+      const results = await fetchRelatedArticles("date test", []);
+      const article = results.find((a) => a.apiSource === "gdelt");
+      expect(article).toBeDefined();
+      expect(article!.publishedAt).toBe("2026-03-15");
+    });
   });
 
   // ── fetchFromGoogleNewsRSS ──────────────────────────────────────────────
 
   describe("fetchFromGoogleNewsRSS (via orchestrator)", () => {
     it("returns articles from Google News RSS", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({
+      mockParseURL.mockResolvedValue({
         items: [
           {
             title: "Google RSS Article - CNN",
@@ -186,14 +213,65 @@ describe("news-fetcher", () => {
       expect(rssArticles[0].source).toBe("CNN");
       expect(rssArticles[1].domain).toBe("bbc.com");
     });
+
+    it("extracts source name from Google News title format", async () => {
+      mockParseURL.mockResolvedValue({
+        items: [
+          {
+            title: "Big Story Happens - The Wall Street Journal",
+            link: "https://wsj.com/story",
+            contentSnippet: "snippet",
+            isoDate: "2026-04-01T08:00:00Z",
+          },
+        ],
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ articles: [], status: "success", results: [], data: [] }),
+        })
+      );
+
+      const results = await fetchRelatedArticles("news story", []);
+      const rssArticle = results.find((a) => a.apiSource === "googlenews");
+      expect(rssArticle).toBeDefined();
+      // creator is undefined so it falls back to extractSourceFromGoogleTitle
+      expect(rssArticle!.source).toBe("The Wall Street Journal");
+    });
+
+    it("filters out RSS items without link or title", async () => {
+      mockParseURL.mockResolvedValue({
+        items: [
+          { title: null, link: "https://example.com/no-title", isoDate: "2026-04-01T08:00:00Z" },
+          { title: "No Link Article", link: null, isoDate: "2026-04-01T08:00:00Z" },
+          {
+            title: "Valid Article",
+            link: "https://example.com/valid",
+            isoDate: "2026-04-01T08:00:00Z",
+          },
+        ],
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ articles: [], status: "success", results: [], data: [] }),
+        })
+      );
+
+      const results = await fetchRelatedArticles("filter rss", []);
+      const rssArticles = results.filter((a) => a.apiSource === "googlenews");
+      expect(rssArticles.length).toBe(1);
+      expect(rssArticles[0].title).toBe("Valid Article");
+    });
   });
 
   // ── Failed sources don't break everything ───────────────────────────────
 
   describe("resilience with Promise.allSettled", () => {
     it("returns results from successful sources even when others fail", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockRejectedValue(new Error("RSS timeout"));
+      mockParseURL.mockRejectedValue(new Error("RSS timeout"));
 
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
         if (typeof url === "string" && url.includes("gdeltproject.org")) {
@@ -226,13 +304,30 @@ describe("news-fetcher", () => {
     });
 
     it("returns empty array when all sources fail", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockRejectedValue(new Error("RSS down"));
+      mockParseURL.mockRejectedValue(new Error("RSS down"));
 
       globalThis.fetch = vi.fn().mockRejectedValue(new Error("All APIs down"));
 
       const results = await fetchRelatedArticles("failing topic", []);
       expect(results).toEqual([]);
+    });
+
+    it("logs warnings for failed sources", async () => {
+      mockParseURL.mockRejectedValue(new Error("RSS timeout"));
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === "string" && url.includes("gdeltproject.org")) {
+          return Promise.reject(new Error("GDELT network error"));
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: "success", results: [], data: [] }),
+        });
+      });
+
+      await fetchRelatedArticles("log test", []);
+
+      expect(console.warn).toHaveBeenCalled();
     });
   });
 
@@ -240,9 +335,6 @@ describe("news-fetcher", () => {
 
   describe("empty results handling", () => {
     it("returns empty array when all sources return empty", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({ items: [] });
-
       globalThis.fetch = vi.fn().mockImplementation(() =>
         Promise.resolve({
           ok: true,
@@ -260,9 +352,6 @@ describe("news-fetcher", () => {
     });
 
     it("filters out articles with empty titles", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({ items: [] });
-
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
         if (typeof url === "string" && url.includes("gdeltproject.org")) {
           return Promise.resolve(
@@ -283,14 +372,31 @@ describe("news-fetcher", () => {
       expect(results.length).toBe(1);
       expect(results[0].title).toBe("Valid Title");
     });
+
+    it("handles null articles array from GDELT", async () => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === "string" && url.includes("gdeltproject.org")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ articles: null }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: "success", results: [], data: [] }),
+        });
+      });
+
+      const results = await fetchRelatedArticles("null articles", []);
+      expect(results).toEqual([]);
+    });
   });
 
   // ── URL dedup ───────────────────────────────────────────────────────────
 
   describe("URL deduplication", () => {
     it("removes duplicate URLs across sources", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({
+      mockParseURL.mockResolvedValue({
         items: [
           {
             title: "Same Article From RSS",
@@ -322,15 +428,13 @@ describe("news-fetcher", () => {
 
       const results = await fetchRelatedArticles("dedup test", []);
 
-      // Both sources return same URL; only one should survive
-      const reutersArticles = results.filter((a) => a.domain === "reuters.com");
+      const reutersArticles = results.filter((a) =>
+        a.url.includes("reuters.com/article-dup")
+      );
       expect(reutersArticles.length).toBe(1);
     });
 
     it("treats http and https versions of same URL as duplicates", async () => {
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({ items: [] });
-
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
         if (typeof url === "string" && url.includes("gdeltproject.org")) {
           return Promise.resolve({
@@ -366,16 +470,49 @@ describe("news-fetcher", () => {
       const results = await fetchRelatedArticles("http dedup", []);
       expect(results.length).toBe(1);
     });
+
+    it("normalizes trailing slashes for dedup", async () => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === "string" && url.includes("gdeltproject.org")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              articles: [
+                {
+                  title: "With Slash",
+                  url: "https://example.com/article/",
+                  seendate: "20260401T120000Z",
+                  socialimage: "",
+                  domain: "example.com",
+                  sourcecountry: "US",
+                },
+                {
+                  title: "Without Slash",
+                  url: "https://example.com/article",
+                  seendate: "20260401T120000Z",
+                  socialimage: "",
+                  domain: "example.com",
+                  sourcecountry: "US",
+                },
+              ],
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: "success", results: [], data: [] }),
+        });
+      });
+
+      const results = await fetchRelatedArticles("slash dedup", []);
+      expect(results.length).toBe(1);
+    });
   });
 
   // ── Missing API keys ───────────────────────────────────────────────────
 
   describe("missing API keys", () => {
     it("gracefully skips NewsData and TheNewsAPI when keys are empty", async () => {
-      // config already has empty keys from mock
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({ items: [] });
-
       const fetchSpy = vi.fn().mockImplementation((url: string) => {
         if (typeof url === "string" && url.includes("gdeltproject.org")) {
           return Promise.resolve(
@@ -415,8 +552,7 @@ describe("news-fetcher", () => {
       (config as any).newsDataApiKey = "test-newsdata-key";
       (config as any).theNewsApiKey = "test-thenewsapi-key";
 
-      const mockParserInstance = new (Parser as any)();
-      mockParserInstance.parseURL.mockResolvedValue({
+      mockParseURL.mockResolvedValue({
         items: [
           {
             title: "RSS Article - Source",
@@ -469,7 +605,6 @@ describe("news-fetcher", () => {
 
       const results = await fetchRelatedArticles("multi-source test", ["entity1", "entity2"]);
 
-      // All 4 sources contributed
       const apiSources = new Set(results.map((r) => r.apiSource));
       expect(apiSources.has("gdelt")).toBe(true);
       expect(apiSources.has("newsdata")).toBe(true);
