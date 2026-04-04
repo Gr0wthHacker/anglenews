@@ -113,7 +113,7 @@ const App: React.FC = () => {
       : "";
 
   return (
-    <div className="flex flex-col h-screen max-w-panel bg-white">
+    <div className="flex flex-col h-screen max-w-panel bg-white dark:bg-gray-900">
       {/* Header */}
       <Header
         topic={state.status === "results" ? state.data.topic : null}
@@ -132,10 +132,10 @@ const App: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-4">
               <Info size={24} className="text-blue-400" />
             </div>
-            <p className="text-sm font-medium text-gray-700 mb-1">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               No article detected
             </p>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
               Navigate to a news article and click AngleCheck to see how
               different outlets cover the same story.
             </p>
@@ -158,10 +158,10 @@ const App: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
               <span className="text-xl">!</span>
             </div>
-            <p className="text-sm font-medium text-gray-700 mb-1">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Analysis Failed
             </p>
-            <p className="text-xs text-gray-400 leading-relaxed mb-4">
+            <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed mb-4">
               {state.message}
             </p>
             <button
@@ -178,7 +178,7 @@ const App: React.FC = () => {
         {state.status === "results" && (
           <>
             {/* Current article card (sticky) */}
-            <div className="sticky top-0 z-10 bg-white pb-1 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]">
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 pb-1 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]">
               <CurrentArticleCard
                 article={state.data.currentArticle}
                 compact={compact}
@@ -206,7 +206,7 @@ const App: React.FC = () => {
             <SourceList articles={allClusterArticles} />
 
             {/* Footer */}
-            <div className="px-3 py-4 border-t border-gray-50 mt-2">
+            <div className="px-3 py-4 border-t border-gray-50 dark:border-gray-800 mt-2">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] text-gray-300">
                   Powered by AngleCheck

@@ -139,7 +139,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({ comparison }) => {
 
 // ─── Text Summary Generator ─────────────────────────────────────────────────
 
-function generatePlainTextSummary(data: AngleComparison): string {
+export function generatePlainTextSummary(data: AngleComparison): string {
   const { topic, currentArticle, clusters, coverageGaps, totalSourcesAnalyzed } = data;
   const currentSource =
     currentArticle.sourceBias?.name ||
@@ -185,7 +185,7 @@ function generatePlainTextSummary(data: AngleComparison): string {
 
 // ─── Markdown Summary Generator ─────────────────────────────────────────────
 
-function generateMarkdownSummary(data: AngleComparison): string {
+export function generateMarkdownSummary(data: AngleComparison): string {
   const { topic, currentArticle, clusters, coverageGaps, totalSourcesAnalyzed } = data;
   const safeTopic = escapeHtml(topic);
   const safeHeadline = escapeHtml(currentArticle.article.headline);
@@ -295,14 +295,14 @@ ${htmlBody}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function formatBiasLabel(rating: string): string {
+export function formatBiasLabel(rating: string): string {
   return rating
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
 
-function escapeHtml(str: string): string {
+export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

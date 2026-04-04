@@ -148,7 +148,15 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onLoadComparison }) => {
   }, [isOpen]);
 
   const handleClearHistory = async () => {
-    await chrome.storage.local.remove(STORAGE_KEY);
+    try {
+      await chrome.storage.local.remove(STORAGE_KEY);
+    } catch {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Storage unavailable
+      }
+    }
     setHistory([]);
   };
 
