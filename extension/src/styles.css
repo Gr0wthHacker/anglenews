@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html.dark {
+    color-scheme: dark;
+  }
+}
+
 :root {
   --panel-max-width: 400px;
   --font-primary: "Inter", system-ui, -apple-system, BlinkMacSystemFont,

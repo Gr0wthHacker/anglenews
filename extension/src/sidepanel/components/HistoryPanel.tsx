@@ -4,6 +4,7 @@ import type { AngleComparison } from "@shared/types";
 
 const STORAGE_KEY = "anglecheck_comparison_history";
 const MAX_HISTORY_ITEMS = 20;
+const MAX_STORAGE_BYTES = 500 * 1024; // 500KB
 
 export interface HistoryEntry {
   id: string;
@@ -18,13 +19,44 @@ interface HistoryPanelProps {
   onLoadComparison: (comparison: AngleComparison) => void;
 }
 
+/** Validate that an object has the shape of a HistoryEntry. */
+function isValidHistoryEntry(obj: unknown): obj is HistoryEntry {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const e = obj as Record<string, unknown>;
+  return (
+    typeof e.id === 'string' &&
+    typeof e.topic === 'string' &&
+    typeof e.timestamp === 'string' &&
+    typeof e.sourceCount === 'number' &&
+    typeof e.clusterCount === 'number' &&
+    typeof e.comparison === 'object' &&
+    e.comparison !== null
+  );
+}
+
+/** Deduplicate entries by id, keeping the first occurrence. */
+function deduplicateEntries(entries: HistoryEntry[]): HistoryEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    if (seen.has(entry.id)) return false;
+    seen.add(entry.id);
+    return true;
+  });
+}
+
+/** Trim entries until serialized size is under the max. */
+function trimToSizeLimit(entries: HistoryEntry[]): HistoryEntry[] {
+  let trimmed = entries;
+  while (trimmed.length > 0) {
+    const size = new Blob([JSON.stringify(trimmed)]).size;
+    if (size <= MAX_STORAGE_BYTES) break;
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed;
+}
+
 /** Save a comparison to history in chrome.storage.local. */
 export async function saveToHistory(comparison: AngleComparison): Promise<void> {
-  const result = await chrome.storage.local.get(STORAGE_KEY);
-  const existing: HistoryEntry[] = Array.isArray(result[STORAGE_KEY])
-    ? result[STORAGE_KEY]
-    : [];
-
   const entry: HistoryEntry = {
     id: comparison.id,
     topic: comparison.topic,
@@ -34,13 +66,36 @@ export async function saveToHistory(comparison: AngleComparison): Promise<void> 
     comparison,
   };
 
-  // Deduplicate by id, prepend new entry, and trim to max
-  const updated = [
-    entry,
-    ...existing.filter((e) => e.id !== comparison.id),
-  ].slice(0, MAX_HISTORY_ITEMS);
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEY);
+    const raw = result[STORAGE_KEY];
+    const existing: HistoryEntry[] = Array.isArray(raw)
+      ? raw.filter(isValidHistoryEntry)
+      : [];
 
-  await chrome.storage.local.set({ [STORAGE_KEY]: updated });
+    // Deduplicate by id, prepend new entry, trim to max count, then trim to size limit
+    const updated = trimToSizeLimit(
+      deduplicateEntries([entry, ...existing]).slice(0, MAX_HISTORY_ITEMS),
+    );
+
+    await chrome.storage.local.set({ [STORAGE_KEY]: updated });
+  } catch {
+    // Outside extension context, use localStorage fallback
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const existing: HistoryEntry[] = raw
+        ? (JSON.parse(raw) as unknown[]).filter(isValidHistoryEntry)
+        : [];
+
+      const updated = trimToSizeLimit(
+        deduplicateEntries([entry, ...existing]).slice(0, MAX_HISTORY_ITEMS),
+      );
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // localStorage also unavailable, skip persistence
+    }
+  }
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onLoadComparison }) => {
@@ -52,12 +107,31 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onLoadComparison }) => {
   useEffect(() => {
     if (!isOpen) return;
 
-    chrome.storage.local.get(STORAGE_KEY, (result) => {
-      const stored = result[STORAGE_KEY];
-      if (Array.isArray(stored)) {
-        setHistory(stored);
+    try {
+      chrome.storage.local.get(STORAGE_KEY, (result) => {
+        if (chrome.runtime.lastError) {
+          console.warn('Failed to load history:', chrome.runtime.lastError);
+          return;
+        }
+        const stored = result[STORAGE_KEY];
+        if (Array.isArray(stored)) {
+          const validated = stored.filter(isValidHistoryEntry);
+          setHistory(deduplicateEntries(validated));
+        }
+      });
+    } catch {
+      // Outside extension context, use localStorage fallback
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as unknown[];
+          const validated = parsed.filter(isValidHistoryEntry);
+          setHistory(deduplicateEntries(validated));
+        }
+      } catch {
+        // localStorage also unavailable
       }
-    });
+    }
   }, [isOpen]);
 
   // Close on outside click

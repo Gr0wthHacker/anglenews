@@ -158,7 +158,12 @@ async function fetchFromGoogleNewsRSS(query: string): Promise<RawArticle[]> {
   const encodedQuery = encodeURIComponent(sanitizeQuery(query));
   const url = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
 
-  const feed = await rssParser.parseURL(url);
+  const feed = await Promise.race([
+    rssParser.parseURL(url),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Google News RSS timeout after 10s")), 10000)
+    ),
+  ]);
 
   if (!feed.items || !Array.isArray(feed.items)) {
     return [];

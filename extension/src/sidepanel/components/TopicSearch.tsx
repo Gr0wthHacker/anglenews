@@ -21,12 +21,31 @@ const TopicSearch: React.FC<TopicSearchProps> = ({ onSearch }) => {
 
   // Load recent searches from storage on mount
   useEffect(() => {
-    chrome.storage.local.get(STORAGE_KEY, (result) => {
-      const stored = result[STORAGE_KEY];
-      if (Array.isArray(stored)) {
-        setRecentSearches(stored);
+    try {
+      chrome.storage.local.get(STORAGE_KEY, (result) => {
+        if (chrome.runtime.lastError) {
+          console.warn('Failed to load recent searches:', chrome.runtime.lastError);
+          return;
+        }
+        const stored = result[STORAGE_KEY];
+        if (Array.isArray(stored)) {
+          setRecentSearches(stored);
+        }
+      });
+    } catch {
+      // Outside extension context, use localStorage fallback
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setRecentSearches(parsed);
+          }
+        }
+      } catch {
+        // localStorage also unavailable, proceed without recent searches
       }
-    });
+    }
   }, []);
 
   // Close on outside click
@@ -66,7 +85,20 @@ const TopicSearch: React.FC<TopicSearchProps> = ({ onSearch }) => {
       ].slice(0, MAX_RECENT_SEARCHES);
 
       setRecentSearches(updated);
-      chrome.storage.local.set({ [STORAGE_KEY]: updated });
+      try {
+        chrome.storage.local.set({ [STORAGE_KEY]: updated }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn('Failed to save recent searches:', chrome.runtime.lastError);
+          }
+        });
+      } catch {
+        // Outside extension context, use localStorage fallback
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // localStorage also unavailable, skip persistence
+        }
+      }
     },
     [recentSearches],
   );
