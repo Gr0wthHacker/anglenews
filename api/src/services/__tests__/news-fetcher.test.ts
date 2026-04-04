@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Shared mock for the rss-parser parseURL method ─────────────────────────
-const mockParseURL = vi.fn();
+const { mockParseURL } = vi.hoisted(() => {
+  const mockParseURL = vi.fn();
+  return { mockParseURL };
+});
 
 vi.mock("rss-parser", () => {
   return {

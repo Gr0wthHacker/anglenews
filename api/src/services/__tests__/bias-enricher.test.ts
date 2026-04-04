@@ -1,4 +1,33 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+// Read the actual bias data from the correct path so we can provide it via mock
+const BIAS_DATA_PATH = resolve(__dirname, "..", "..", "..", "..", "shared", "bias-ratings.json");
+let biasJsonData: string;
+try {
+  biasJsonData = readFileSync(BIAS_DATA_PATH, "utf-8");
+} catch {
+  // Fallback: try from the project root
+  biasJsonData = readFileSync(
+    resolve(__dirname, "..", "..", "..", "..", "..", "shared", "bias-ratings.json"),
+    "utf-8"
+  );
+}
+
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    readFileSync: vi.fn().mockImplementation((path: string, encoding?: string) => {
+      if (typeof path === "string" && path.includes("bias-ratings.json")) {
+        return biasJsonData;
+      }
+      return actual.readFileSync(path, encoding as any);
+    }),
+  };
+});
+
 import {
   getSourceBias,
   getAllSources,
