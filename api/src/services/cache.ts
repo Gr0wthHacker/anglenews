@@ -127,6 +127,29 @@ export function getFeedbackStats(): {
   };
 }
 
+// ─── Cache Stats ───────────────────────────────────────────────────────────
+
+export function getCacheStats(): { entries: number; size: string } {
+  const entries = comparisonCache.size;
+  // Rough estimate: serialize to JSON to get byte size
+  let totalBytes = 0;
+  for (const [key, entry] of comparisonCache) {
+    totalBytes += key.length * 2; // UTF-16
+    totalBytes += JSON.stringify(entry.data).length * 2;
+  }
+
+  let size: string;
+  if (totalBytes < 1024) {
+    size = `${totalBytes}B`;
+  } else if (totalBytes < 1024 * 1024) {
+    size = `${Math.round(totalBytes / 1024)}KB`;
+  } else {
+    size = `${(totalBytes / (1024 * 1024)).toFixed(1)}MB`;
+  }
+
+  return { entries, size };
+}
+
 // ─── Cleanup ────────────────────────────────────────────────────────────────
 
 /** Periodically clean expired cache entries */

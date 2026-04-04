@@ -6,20 +6,18 @@ import { resolve } from "path";
 export default defineConfig(({ mode }) => {
   const isDev = mode === "development";
 
-  // Determine which build target to run based on VITE_BUILD_TARGET env var.
-  // When not set (default), we run the main build which includes HTML pages,
-  // service worker, and content scripts via a custom plugin.
   return {
+    root: resolve(__dirname, "src"),
     plugins: [
       react(),
       viteStaticCopy({
         targets: [
           {
-            src: "manifest.json",
+            src: resolve(__dirname, "manifest.json"),
             dest: ".",
           },
           {
-            src: "assets/*",
+            src: resolve(__dirname, "assets") + "/*",
             dest: "assets",
           },
         ],
@@ -31,8 +29,10 @@ export default defineConfig(({ mode }) => {
         "@shared": resolve(__dirname, "../shared"),
       },
     },
+    // Use relative paths for assets — Chrome extensions load via chrome-extension:// protocol
+    base: "",
     build: {
-      outDir: "dist",
+      outDir: resolve(__dirname, "dist"),
       emptyOutDir: true,
       sourcemap: isDev,
       minify: !isDev,

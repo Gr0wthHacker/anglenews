@@ -33,13 +33,45 @@ function cleanup(): void {
   }
 }
 
-function getClientIP(c: Context): string {
+export function getClientIP(c: Context): string {
   return (
     c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
     c.req.header("x-real-ip") ||
     c.req.header("cf-connecting-ip") ||
     "unknown"
   );
+}
+
+/**
+ * Check rate limit status for an IP without consuming a request.
+ */
+export function getRateLimitStatus(ip: string): {
+  remaining: number;
+  limit: number;
+  resetAt: string;
+} {
+  const now = Date.now();
+  const cutoff = now - WINDOW_MS;
+  const limit = config.rateLimitPerDay;
+
+  const entry = windows.get(ip);
+  if (!entry) {
+    return {
+      remaining: limit,
+      limit,
+      resetAt: new Date(now + WINDOW_MS).toISOString(),
+    };
+  }
+
+  // Filter stale timestamps for accurate count
+  const activeTimestamps = entry.timestamps.filter((t) => t > cutoff);
+  const remaining = Math.max(0, limit - activeTimestamps.length);
+  const resetAt =
+    activeTimestamps.length > 0
+      ? new Date(activeTimestamps[0] + WINDOW_MS).toISOString()
+      : new Date(now + WINDOW_MS).toISOString();
+
+  return { remaining, limit, resetAt };
 }
 
 export async function rateLimiter(c: Context, next: Next): Promise<Response | void> {

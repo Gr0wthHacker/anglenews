@@ -1,24 +1,41 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { corsMiddleware } from "./middleware/cors.js";
-import { rateLimiter } from "./middleware/rate-limiter.js";
+import { rateLimiter, getRateLimitStatus, getClientIP } from "./middleware/rate-limiter.js";
+import { requestLogger } from "./middleware/logger.js";
 import { analyzeRoute } from "./routes/analyze.js";
 import { topicRoute } from "./routes/topic.js";
 import { feedbackRoute } from "./routes/feedback.js";
 import { trendingRoute } from "./routes/trending.js";
+import { rateLimitRoute } from "./routes/rate-limit.js";
 import { config } from "./lib/config.js";
+import { getCacheStats } from "./services/cache.js";
+import { AppError } from "./lib/errors.js";
 
 const app = new Hono();
 
 // ─── Global Middleware ────────────────────────────────────────────────────────
 
 app.use("*", corsMiddleware);
+app.use("*", requestLogger);
 app.use("/api/*", rateLimiter);
 
 // ─── Error Handling Middleware ────────────────────────────────────────────────
 
 app.onError((err, c) => {
   console.error("[error]", err);
+
+  // Handle typed AppError instances with structured responses
+  if (err instanceof AppError) {
+    return c.json(
+      {
+        success: false,
+        error: err.message,
+        code: err.code,
+      },
+      err.statusCode as 400
+    );
+  }
 
   const status = "status" in err && typeof err.status === "number" ? err.status : 500;
   const message =
@@ -30,6 +47,7 @@ app.onError((err, c) => {
     {
       success: false,
       error: message,
+      code: "INTERNAL_ERROR",
     },
     status as 500
   );
@@ -49,12 +67,29 @@ app.notFound((c) => {
 
 // ─── Health Check ────────────────────────────────────────────────────────────
 
+const startedAt = Date.now();
+
 app.get("/api/health", (c) => {
+  const ip = getClientIP(c);
+  const rateLimitStatus = getRateLimitStatus(ip);
+  const cacheStats = getCacheStats();
+
   return c.json({
     status: "ok",
-    timestamp: new Date().toISOString(),
-    environment: config.environment,
     version: "1.0.0",
+    uptime: Math.floor((Date.now() - startedAt) / 1000),
+    services: {
+      anthropic: !!config.anthropicApiKey,
+      newsdata: !!config.newsDataApiKey,
+      thenewsapi: !!config.theNewsApiKey,
+      gdelt: true,
+      cache: cacheStats,
+    },
+    rateLimit: {
+      remaining: rateLimitStatus.remaining,
+      limit: rateLimitStatus.limit,
+      resetAt: rateLimitStatus.resetAt,
+    },
   });
 });
 
@@ -64,6 +99,7 @@ app.route("/api/analyze", analyzeRoute);
 app.route("/api/topic", topicRoute);
 app.route("/api/feedback", feedbackRoute);
 app.route("/api/trending", trendingRoute);
+app.route("/api/rate-limit", rateLimitRoute);
 
 // ─── Local Development Server ────────────────────────────────────────────────
 
