@@ -126,10 +126,7 @@ analyzeRoute.post("/", async (c) => {
       sourceBias: getBiasForDomain(item.article.domain),
     }));
 
-    // ── Step 8: Cluster by angle similarity ───────────────────────────────
-    const clusters = clusterArticles(analyzedArticles, body.domain);
-
-    // ── Step 9: Build the current article's analysis ──────────────────────
+    // ── Step 8: Build the current article's analysis ──────────────────────
     // Find or create analysis for the user's current article
     let currentArticle = analyzedArticles.find(
       (a) => a.article.domain === body.domain || a.article.url === body.url
@@ -154,6 +151,9 @@ analyzeRoute.post("/", async (c) => {
         sourceBias: getBiasForDomain(body.domain),
       };
     }
+
+    // ── Step 9: Cluster by angle similarity ───────────────────────────────
+    const clusters = clusterArticles(analyzedArticles, currentArticle);
 
     // ── Step 10: Identify coverage gaps ───────────────────────────────────
     const coverageGaps = identifyCoverageGaps(analyzedArticles, body.domain);
