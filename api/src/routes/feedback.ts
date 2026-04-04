@@ -18,7 +18,8 @@ feedbackRoute.post(
     comment: "optional_string",
   }),
   async (c) => {
-  const body = c.get("validatedBody") as FeedbackRequest;
+  // Body already validated by middleware; Hono caches the parsed JSON
+  const body = await c.req.json<FeedbackRequest>();
 
   // Additional validation: rating range
   if (
