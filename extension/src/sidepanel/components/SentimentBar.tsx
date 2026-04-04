@@ -19,7 +19,14 @@ const SentimentBar: React.FC<SentimentBarProps> = ({ compound }) => {
 
   return (
     <div className="w-full">
-      <div className="relative h-2.5 rounded-full overflow-hidden bg-gray-100">
+      <div
+        className="relative h-2.5 rounded-full overflow-hidden bg-gray-100"
+        role="meter"
+        aria-valuenow={compound}
+        aria-valuemin={-1}
+        aria-valuemax={1}
+        aria-label={`Sentiment: ${label} (${compound > 0 ? "+" : ""}${compound.toFixed(2)})`}
+      >
         {/* Gradient bar */}
         <div
           className="absolute inset-0 rounded-full"

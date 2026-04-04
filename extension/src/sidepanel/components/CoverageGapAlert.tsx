@@ -28,7 +28,7 @@ const CoverageGapAlert: React.FC<CoverageGapAlertProps> = ({
   };
 
   return (
-    <div className="mx-3 my-3 rounded-lg border border-amber-200 bg-amber-50 overflow-hidden">
+    <div className="mx-3 my-3 rounded-lg border border-amber-200 bg-amber-50 overflow-hidden" role="alert">
       {/* Header */}
       <div className="flex items-start gap-2 px-3 pt-3 pb-2">
         <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />

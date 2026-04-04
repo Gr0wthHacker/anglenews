@@ -43,7 +43,11 @@ const ToneDistributionBar: React.FC<ToneDistributionBarProps> = ({
       </h2>
 
       {/* Stacked bar */}
-      <div className="flex h-5 rounded-full overflow-hidden bg-gray-100">
+      <div
+        className="flex h-5 rounded-full overflow-hidden bg-gray-100"
+        role="img"
+        aria-label={`Tone distribution: ${activeRegisters.map((r) => `${REGISTER_LABELS[r]} ${Math.round((distribution[r] / total) * 100)}%`).join(", ")}`}
+      >
         {activeRegisters.map((register) => {
           const count = distribution[register];
           const pct = (count / total) * 100;

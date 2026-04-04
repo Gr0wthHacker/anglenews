@@ -12,3 +12,7 @@ coverage/
 *.tsbuildinfo
 chrome-mv3-prod/
 chrome-mv3-dev/
+shared/*.js
+shared/*.d.ts
+shared/*.map
+package-lock.json

@@ -13,6 +13,8 @@
  * the background service worker via chrome.runtime.onMessage.
  */
 
+import { parseReadability } from "./readability-shim";
+
 // ---------------------------------------------------------------------------
 // Types (defined locally — mirrors @shared/types)
 // ---------------------------------------------------------------------------
@@ -26,21 +28,6 @@ interface ArticleData {
   domain: string;
   publishDate: string | null;
   imageUrl: string | null;
-}
-
-// Type for the readability shim attached to window
-interface ReadabilityShim {
-  parseReadability: (doc: Document) => {
-    title: string;
-    textContent: string;
-    byline: string | null;
-    siteName: string | null;
-  } | null;
-  extractTitle: (doc: Document) => string;
-  extractByline: (doc: Document) => string | null;
-  extractParagraphText: (node: Element) => string;
-  getInnerText: (node: Element) => string;
-  getLinkDensity: (node: Element) => number;
 }
 
 // ---------------------------------------------------------------------------
@@ -290,12 +277,9 @@ function resolveUrl(url: string): string {
  * Works on ~90% of news sites.
  */
 function extractViaReadability(doc: Document): Partial<ArticleData> | null {
-  const shim = (window as any).__readabilityShim as ReadabilityShim | undefined;
-  if (!shim) return null;
-
   // Clone the document so parsing doesn't mutate the live DOM
   const clonedDoc = doc.cloneNode(true) as Document;
-  const result = shim.parseReadability(clonedDoc);
+  const result = parseReadability(clonedDoc);
   if (!result || !result.textContent || result.textContent.length < 50) {
     return null;
   }

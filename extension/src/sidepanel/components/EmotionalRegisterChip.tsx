@@ -45,6 +45,7 @@ const EmotionalRegisterChip: React.FC<EmotionalRegisterChipProps> = ({
         color: color,
         border: `1px solid ${color}30`,
       }}
+      aria-label={`Emotional register: ${label}`}
     >
       <Icon size={iconSize} />
       {label}

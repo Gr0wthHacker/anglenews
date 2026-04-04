@@ -68,6 +68,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
         <button
           onClick={handleOpen}
           className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-500 hover:text-blue-700 transition-colors"
+          aria-label={`Read article from ${sourceName}`}
         >
           Read
           <ExternalLink size={10} />

@@ -1,6 +1,7 @@
 {
   "name": "@anglecheck/extension",
   "version": "1.0.0",
+  "type": "module",
   "description": "AngleCheck Chrome Extension",
   "scripts": {
     "dev": "vite build --watch --mode development",

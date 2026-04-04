@@ -36,7 +36,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({ sourceCount }) => {
       : STAGES[stageIndex];
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6 py-16">
+    <div className="flex flex-col items-center justify-center h-full px-6 py-16" role="status" aria-live="polite">
       <div className="relative mb-6">
         <Loader2 size={40} className="text-blue-500 animate-spin" />
       </div>

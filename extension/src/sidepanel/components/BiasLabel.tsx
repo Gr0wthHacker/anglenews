@@ -32,6 +32,7 @@ const BiasLabel: React.FC<BiasLabelProps> = ({ biasRating, size = "md" }) => {
         color: color,
         border: `1px solid ${color}40`,
       }}
+      aria-label={`Bias rating: ${label}`}
     >
       {label}
     </span>

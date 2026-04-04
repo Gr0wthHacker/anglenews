@@ -1,88 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Settings, Search, ExternalLink, AlertTriangle, RefreshCw } from "lucide-react";
-
-// ─── Types (local mirrors of @shared/types) ────────────────────────────────
-
-type EmotionalRegister =
-  | "alarm"
-  | "neutral"
-  | "optimistic"
-  | "adversarial"
-  | "empathetic"
-  | "dismissive";
-
-type BiasRating =
-  | "far-left"
-  | "left"
-  | "left-center"
-  | "center"
-  | "right-center"
-  | "right"
-  | "far-right";
-
-interface SourceBias {
-  domain: string;
-  name: string;
-  biasRating: BiasRating;
-  factualRating: string;
-}
-
-interface AngleAnalysis {
-  headline_framing: string;
-  central_entity: string;
-  emotional_register: EmotionalRegister;
-  causal_attribution: string;
-  solution_frame: string;
-  key_omissions: string[];
-  quote_sources: any[];
-  statistical_anchoring: string;
-  confidence: number;
-}
-
-interface SentimentScore {
-  compound: number;
-  positive: number;
-  negative: number;
-  neutral: number;
-}
-
-interface ArticleData {
-  headline: string;
-  body: string;
-  byline: string | null;
-  siteName: string | null;
-  url: string;
-  domain: string;
-  publishDate: string | null;
-  imageUrl: string | null;
-}
-
-interface AnalyzedArticle {
-  article: ArticleData;
-  angle: AngleAnalysis;
-  sentiment: SentimentScore;
-  sourceBias: SourceBias | null;
-}
-
-interface AngleCluster {
-  id: string;
-  label: string;
-  articles: AnalyzedArticle[];
-  dominantRegister: EmotionalRegister;
-  distinctiveness: number;
-}
-
-interface AngleComparison {
-  id: string;
-  topic: string;
-  currentArticle: AnalyzedArticle;
-  clusters: AngleCluster[];
-  coverageGaps: any[];
-  toneDistribution: Record<EmotionalRegister, number>;
-  totalSourcesFetched: number;
-  totalSourcesAnalyzed: number;
-  timestamp: string;
-}
+import type {
+  EmotionalRegister,
+  BiasRating,
+  SourceBias,
+  AngleAnalysis,
+  SentimentScore,
+  ArticleData,
+  AnalyzedArticle,
+  AngleCluster,
+  AngleComparison,
+} from "@shared/types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 

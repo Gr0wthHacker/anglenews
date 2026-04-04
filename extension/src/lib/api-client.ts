@@ -96,7 +96,7 @@ export class AngleCheckAPI {
   async getCachedComparison(fingerprint: string): Promise<AngleComparison | null> {
     try {
       const response = await this.request<{ comparison: AngleComparison | null }>(
-        `/api/comparisons/${encodeURIComponent(fingerprint)}`,
+        `/api/topic/${encodeURIComponent(fingerprint)}`,
         { method: "GET" },
       );
       return response.comparison;
@@ -118,7 +118,7 @@ export class AngleCheckAPI {
   ): Promise<void> {
     await this.request<{ success: boolean }>("/api/feedback", {
       method: "POST",
-      body: JSON.stringify({ comparisonId, rating, correction }),
+      body: JSON.stringify({ comparisonId, rating, comment: correction }),
     });
   }
 
@@ -142,18 +142,20 @@ export class AngleCheckAPI {
       return this.lastRateLimit;
     }
 
-    // Hit a lightweight endpoint to discover rate limit headers
-    const response = await this.rawRequest("/api/rate-limit", { method: "GET" });
+    // Hit the health endpoint to discover rate limit headers
+    const response = await this.rawRequest("/api/health", { method: "GET" });
     const info = parseRateLimitHeaders(response.headers);
     if (info) {
       this.lastRateLimit = info;
       return info;
     }
 
-    // Fallback: parse body
-    const body = (await response.json()) as RateLimitInfo;
-    this.lastRateLimit = body;
-    return body;
+    // Return defaults if no rate limit headers are present yet
+    return {
+      remaining: 100,
+      limit: 100,
+      resetAt: new Date(Date.now() + 3600_000).toISOString(),
+    };
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────

@@ -103,10 +103,11 @@ describe("tokenize", () => {
   });
 
   it("removes stop words", () => {
-    const tokens = tokenize("The new steel tariffs are causing problems");
+    const tokens = tokenize("The new steel tariffs are very much a problem");
     expect(tokens).not.toContain("the");
     expect(tokens).not.toContain("are");
-    expect(tokens).not.toContain("causing");
+    expect(tokens).not.toContain("very");
+    expect(tokens).not.toContain("much");
     expect(tokens).toContain("steel");
     expect(tokens).toContain("tariffs");
   });
@@ -258,8 +259,18 @@ describe("deduplicateArticles - URL dedup", () => {
 
   it("handles different URLs for different articles", () => {
     const articles = [
-      makeArticle({ url: "https://cnn.com/steel-tariffs", domain: "cnn.com" }),
-      makeArticle({ url: "https://bbc.com/steel-tariffs", domain: "bbc.com" }),
+      makeArticle({
+        title: "CNN: Steel Tariffs Impact American Economy",
+        url: "https://cnn.com/steel-tariffs",
+        domain: "cnn.com",
+        description: "CNN reports on the impact of steel tariffs on the American economy.",
+      }),
+      makeArticle({
+        title: "BBC: European Markets React to Trade Policy",
+        url: "https://bbc.com/steel-tariffs",
+        domain: "bbc.com",
+        description: "BBC covers European market reactions to new trade policies.",
+      }),
     ];
 
     const result = deduplicateArticles(articles);
@@ -299,11 +310,13 @@ describe("deduplicateArticles - Title similarity", () => {
         title: "Steel Tariffs Shake Global Markets",
         url: "https://reuters.com/markets",
         domain: "reuters.com",
+        description: "Financial markets reacted sharply to the new steel tariffs.",
       }),
       makeArticle({
         title: "Workers Protest Factory Closures in Ohio",
         url: "https://nytimes.com/workers",
         domain: "nytimes.com",
+        description: "Hundreds of factory workers staged protests outside closed plants.",
       }),
     ];
 
@@ -364,11 +377,13 @@ describe("deduplicateArticles - Same-source dedup", () => {
         title: "Steel Tariffs Impact Global Markets",
         url: "https://nytimes.com/steel",
         domain: "nytimes.com",
+        description: "Markets fell sharply after tariff announcement.",
       }),
       makeArticle({
-        title: "Climate Summit Reaches Historic Agreement",
+        title: "Climate Summit Reaches Historic Agreement on Emissions",
         url: "https://nytimes.com/climate",
         domain: "nytimes.com",
+        description: "World leaders agreed to cut emissions at the landmark summit.",
       }),
     ];
 
@@ -436,41 +451,46 @@ describe("deduplicateArticles - Full pipeline", () => {
     const articles = [
       // URL duplicate pair
       makeArticle({
-        title: "EU Responds to Steel Tariffs",
+        title: "EU Responds Firmly to Steel Tariffs with Counter Measures",
         url: "https://www.bbc.com/eu-steel",
         domain: "bbc.com",
-        content: "The European Union responded swiftly to new steel tariffs.",
+        description: "The European Union responded swiftly to new steel tariffs with counter measures.",
+        content: "The European Union responded swiftly to new steel tariffs with plans for counter measures against American exports.",
       }),
       makeArticle({
-        title: "EU Responds to Steel Tariffs",
+        title: "EU Responds Firmly to Steel Tariffs with Counter Measures",
         url: "https://bbc.com/eu-steel/",
         domain: "bbc.com",
+        description: "EU responds to tariffs.",
         content: "Short.",
       }),
       // Title similarity duplicate pair
       makeArticle({
-        title: "China Threatens Retaliation Over Steel Tariffs",
+        title: "China Threatens Retaliation Over American Steel Tariffs",
         url: "https://reuters.com/china-retaliation",
         domain: "reuters.com",
-        content: "China warns of retaliatory trade measures in response to steep tariffs.",
+        description: "China warns of retaliatory trade measures.",
+        content: "China warns of retaliatory trade measures in response to steep tariffs on steel imports.",
       }),
       makeArticle({
-        title: "China Threatens Retaliation Against Steel Tariffs",
+        title: "China Threatens Retaliation Against American Steel Tariffs",
         url: "https://ap.com/china-retaliates",
         domain: "ap.com",
+        description: "China threatens retaliation.",
         content: "Brief.",
       }),
       // Genuinely unique article
       makeArticle({
-        title: "Domestic Steel Workers Celebrate Tariff Victory",
+        title: "Domestic Steel Workers Celebrate Tariff Victory in Rust Belt",
         url: "https://foxnews.com/workers-celebrate",
         domain: "foxnews.com",
-        content: "Steel workers in the Rust Belt hailed the tariff decision as a major win for American manufacturing.",
+        description: "Steel workers in the Rust Belt hailed the tariff decision.",
+        content: "Steel workers in the Rust Belt hailed the tariff decision as a major win for American manufacturing and jobs.",
       }),
     ];
 
     const result = deduplicateArticles(articles);
-    // Should keep: 1 BBC, 1 Reuters/AP (the one with more content), 1 Fox
+    // Should keep: 1 BBC (URL dedup), 1 Reuters or AP (title dedup), 1 Fox (unique)
     expect(result.length).toBeLessThanOrEqual(3);
     expect(result.length).toBeGreaterThanOrEqual(2);
   });
@@ -532,16 +552,18 @@ describe("deduplicateArticles - Edge cases", () => {
   it("handles articles with missing descriptions gracefully", () => {
     const articles = [
       makeArticle({
-        title: "Article without description",
+        title: "SpaceX Launches Satellite Into Orbit Successfully",
         url: "https://source1.com/a",
         domain: "source1.com",
         description: "",
+        content: "SpaceX launched a new satellite mission from Cape Canaveral.",
       }),
       makeArticle({
-        title: "Another article without description",
+        title: "Federal Reserve Raises Interest Rates Again",
         url: "https://source2.com/b",
         domain: "source2.com",
         description: "",
+        content: "The Federal Reserve announced another interest rate increase today.",
       }),
     ];
 

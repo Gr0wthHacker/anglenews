@@ -346,10 +346,7 @@ function parseReadability(doc: Document): ReadabilityResult | null {
   }
 }
 
-// Export for use in article-extractor.ts
-// In a content script context these will be concatenated or bundled,
-// so we attach to a namespace on the window object.
-(window as any).__readabilityShim = {
+export {
   parseReadability,
   extractTitle,
   extractByline,
@@ -357,5 +354,4 @@ function parseReadability(doc: Document): ReadabilityResult | null {
   getInnerText,
   getLinkDensity,
 };
-
-export { parseReadability, extractTitle, extractByline, ReadabilityResult };
+export type { ReadabilityResult };
