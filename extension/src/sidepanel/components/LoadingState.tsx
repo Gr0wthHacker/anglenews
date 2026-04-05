@@ -41,7 +41,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({ sourceCount }) => {
         <Loader2 size={40} className="text-blue-500 animate-spin" />
       </div>
 
-      <p className="text-sm font-medium text-gray-700 text-center">
+      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
         {currentMessage}
         <span className="inline-block w-4 text-left">{dots}</span>
       </p>
@@ -54,13 +54,13 @@ const LoadingState: React.FC<LoadingStateProps> = ({ sourceCount }) => {
             className={`h-1.5 rounded-full transition-all duration-500 ${
               i <= stageIndex
                 ? "bg-blue-500 w-4"
-                : "bg-gray-200 w-1.5"
+                : "bg-gray-200 dark:bg-gray-700 w-1.5"
             }`}
           />
         ))}
       </div>
 
-      <p className="text-xs text-gray-400 mt-6">
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-6">
         This typically takes 5-15 seconds
       </p>
     </div>

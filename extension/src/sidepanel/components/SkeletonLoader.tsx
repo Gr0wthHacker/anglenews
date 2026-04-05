@@ -26,7 +26,7 @@ export const SkeletonPulse: React.FC<SkeletonPulseProps> = ({
 
   return (
     <div
-      className={`animate-pulse bg-gray-200 ${roundedClass} ${width} ${height} ${className}`}
+      className={`animate-pulse bg-gray-200 dark:bg-gray-700 ${roundedClass} ${width} ${height} ${className}`}
     />
   );
 };
@@ -34,7 +34,7 @@ export const SkeletonPulse: React.FC<SkeletonPulseProps> = ({
 // ─── Article Card Skeleton ──────────────────────────────────────────────────
 
 export const ArticleCardSkeleton: React.FC = () => (
-  <div className="bg-white border border-gray-100 rounded-lg p-3">
+  <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg p-3">
     {/* Source row: favicon circle + source name */}
     <div className="flex items-center gap-2 mb-1.5">
       <SkeletonPulse width="w-4" height="h-4" rounded="sm" />
@@ -68,7 +68,7 @@ export const ArticleCardSkeleton: React.FC = () => (
 // ─── Current Article Skeleton ───────────────────────────────────────────────
 
 export const CurrentArticleSkeleton: React.FC = () => (
-  <div className="bg-white border border-gray-100 rounded-lg mx-3 mt-3 overflow-hidden shadow-sm border-l-[3px] border-l-gray-300">
+  <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg mx-3 mt-3 overflow-hidden shadow-sm border-l-[3px] border-l-gray-300 dark:border-l-gray-600">
     <div className="px-3 pt-3 pb-2">
       {/* "You're Reading" label */}
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -146,7 +146,7 @@ export const ClusterSkeleton: React.FC<ClusterSkeletonProps> = ({
 export const DashboardSkeleton: React.FC = () => (
   <div className="flex flex-col">
     {/* Current article skeleton (sticky area) */}
-    <div className="bg-white pb-1 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]">
+    <div className="bg-white dark:bg-gray-900 pb-1 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]">
       <CurrentArticleSkeleton />
     </div>
 
@@ -160,7 +160,7 @@ export const DashboardSkeleton: React.FC = () => (
     </div>
 
     {/* Coverage gap alert skeleton */}
-    <div className="mx-3 my-3 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden p-3 space-y-2">
+    <div className="mx-3 my-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-hidden p-3 space-y-2">
       <div className="flex items-center gap-2">
         <SkeletonPulse width="w-3.5" height="h-3.5" rounded="sm" />
         <SkeletonPulse width="w-36" height="h-3" />
