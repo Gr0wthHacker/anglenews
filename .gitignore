@@ -15,4 +15,3 @@ chrome-mv3-dev/
 shared/*.js
 shared/*.d.ts
 shared/*.map
-package-lock.json

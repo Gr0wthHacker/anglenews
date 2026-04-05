@@ -123,7 +123,7 @@ npm test
 
 ## News Sources
 
-AngleCheck includes bias ratings for 57 outlets from across the political spectrum, sourced from Media Bias/Fact Check methodology:
+AngleCheck includes bias ratings for 57 outlets from across the political spectrum. Ratings are derived from publicly available media bias research methodology (primarily [Media Bias/Fact Check](https://mediabiasfactcheck.com/)). These ratings are approximate, subject to change, and provided for informational purposes only. They do not represent the views of the AngleCheck project. Users should evaluate media sources independently.
 
 | Rating | Examples |
 |--------|----------|
@@ -148,6 +148,14 @@ AngleCheck includes bias ratings for 57 outlets from across the political spectr
 
 Rate limit: 20 comparisons/day (free tier).
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and pull request guidelines.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting guidelines.
+
 ## License
 
-MIT
+MIT &mdash; see [LICENSE](LICENSE) for details.

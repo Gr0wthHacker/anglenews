@@ -1,9 +1,9 @@
 import { cors } from "hono/cors";
+import { config } from "../lib/config.js";
 
 /**
  * CORS middleware configured for Chrome extension origins.
- * In production, restrict to the actual extension ID.
- * During development, allow localhost origins as well.
+ * Localhost origins are only allowed in non-production environments.
  */
 export const corsMiddleware = cors({
   origin: (origin) => {
@@ -12,15 +12,16 @@ export const corsMiddleware = cors({
       return origin;
     }
 
-    // Allow localhost during development
+    // Allow localhost only in development/test
     if (
-      origin.startsWith("http://localhost:") ||
-      origin.startsWith("http://127.0.0.1:")
+      config.environment !== "production" &&
+      (origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:"))
     ) {
       return origin;
     }
 
-    // Allow the production frontend if any
+    // Allow the production frontend
     if (origin === "https://anglecheck.dev") {
       return origin;
     }
