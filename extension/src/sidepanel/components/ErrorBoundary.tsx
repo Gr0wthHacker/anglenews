@@ -31,11 +31,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[200px] px-6 py-10 mx-3 my-3 rounded-lg border border-red-200 bg-red-50">
-          <p className="text-sm font-semibold text-red-600 mb-2">
+        <div className="flex flex-col items-center justify-center min-h-[200px] px-6 py-10 mx-3 my-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800">
+          <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">
             Something went wrong
           </p>
-          <p className="text-xs text-red-500 text-center mb-4 leading-relaxed">
+          <p className="text-xs text-red-500 dark:text-red-400 text-center mb-4 leading-relaxed">
             An unexpected error occurred. Please try reloading.
           </p>
           <button

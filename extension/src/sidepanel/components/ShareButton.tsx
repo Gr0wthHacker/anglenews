@@ -90,7 +90,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({ comparison }) => {
       {/* Trigger button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors"
         title="Share comparison"
         aria-haspopup="true"
         aria-expanded={isOpen}
@@ -100,25 +100,25 @@ const ShareButton: React.FC<ShareButtonProps> = ({ comparison }) => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+        <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50">
           <button
             onClick={handleCopyText}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
           >
-            <Copy size={13} className="text-gray-400 shrink-0" />
+            <Copy size={13} className="text-gray-400 dark:text-gray-500 shrink-0" />
             Copy summary to clipboard
           </button>
           <button
             onClick={handleCopyMarkdown}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
           >
-            <FileText size={13} className="text-gray-400 shrink-0" />
+            <FileText size={13} className="text-gray-400 dark:text-gray-500 shrink-0" />
             Copy as Markdown
           </button>
-          <div className="border-t border-gray-100 my-1" />
+          <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
           <button
             onClick={handleOpenInTab}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
           >
             <ExternalLink size={13} className="text-gray-400 shrink-0" />
             Open in new tab

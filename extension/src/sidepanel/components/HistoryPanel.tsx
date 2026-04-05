@@ -189,7 +189,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onLoadComparison }) => {
       {/* Toggle button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors"
         title="Comparison history"
         aria-haspopup="true"
         aria-expanded={isOpen}
@@ -200,10 +200,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onLoadComparison }) => {
 
       {/* Panel dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-100 z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
           {/* Panel header */}
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100">
-            <span className="text-xs font-semibold text-gray-700">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-700">
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
               Recent Comparisons
             </span>
             {history.length > 0 && (
@@ -232,10 +232,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onLoadComparison }) => {
                 <button
                   key={entry.id}
                   onClick={() => handleSelect(entry)}
-                  className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-b-0"
+                  className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left border-b border-gray-50 dark:border-gray-800 last:border-b-0"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-gray-700 truncate">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">
                       {entry.topic}
                     </p>
                     <div className="flex items-center gap-2.5 mt-1">

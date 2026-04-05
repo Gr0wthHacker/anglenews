@@ -176,7 +176,7 @@ const TopicSearch: React.FC<TopicSearchProps> = ({ onSearch }) => {
     return (
       <button
         onClick={handleExpand}
-        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors"
         title="Search topic"
         aria-label="Search topic"
       >
@@ -187,7 +187,7 @@ const TopicSearch: React.FC<TopicSearchProps> = ({ onSearch }) => {
 
   return (
     <div className="relative" ref={containerRef}>
-      <div className="flex items-center gap-1 bg-gray-50 rounded-md border border-gray-200 px-2 py-1 transition-all">
+      <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600 px-2 py-1 transition-all">
         <Search size={12} className="text-gray-400 shrink-0" />
         <input
           ref={inputRef}
@@ -197,7 +197,7 @@ const TopicSearch: React.FC<TopicSearchProps> = ({ onSearch }) => {
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           placeholder="Search topic..."
-          className="bg-transparent text-xs text-gray-700 outline-none w-28 placeholder-gray-400"
+          className="bg-transparent text-xs text-gray-700 dark:text-gray-200 outline-none w-28 placeholder-gray-400 dark:placeholder-gray-500"
           aria-label="Search for a topic"
           autoComplete="off"
         />
@@ -214,7 +214,7 @@ const TopicSearch: React.FC<TopicSearchProps> = ({ onSearch }) => {
 
       {/* Recent searches dropdown */}
       {shouldShowDropdown && (
-        <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+        <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50">
           <p className="px-3 py-1 text-[10px] font-medium text-gray-400 uppercase tracking-wider">
             Recent Searches
           </p>
@@ -222,7 +222,7 @@ const TopicSearch: React.FC<TopicSearchProps> = ({ onSearch }) => {
             <button
               key={term}
               onClick={() => handleRecentClick(term)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
             >
               <Search size={10} className="text-gray-300 shrink-0" />
               <span className="truncate">{term}</span>
