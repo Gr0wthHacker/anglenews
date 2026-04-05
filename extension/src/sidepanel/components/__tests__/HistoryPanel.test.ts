@@ -1,22 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock chrome.storage.local
+// Mock chrome.storage.local — supports both promise and callback API
 const mockStorage: Record<string, any> = {};
 vi.stubGlobal("chrome", {
   storage: {
     local: {
-      get: vi.fn((key: string, cb: (result: Record<string, any>) => void) => {
-        cb({ [key]: mockStorage[key] });
+      get: vi.fn((key: string, cb?: (result: Record<string, any>) => void) => {
+        const result = { [key]: mockStorage[key] };
+        if (cb) { cb(result); return; }
+        return Promise.resolve(result);
       }),
       set: vi.fn(
         (data: Record<string, any>, cb?: () => void) => {
           Object.assign(mockStorage, data);
-          cb?.();
+          if (cb) { cb(); return; }
+          return Promise.resolve();
         },
       ),
       remove: vi.fn((key: string, cb?: () => void) => {
         delete mockStorage[key];
-        cb?.();
+        if (cb) { cb(); return; }
+        return Promise.resolve();
       }),
     },
   },

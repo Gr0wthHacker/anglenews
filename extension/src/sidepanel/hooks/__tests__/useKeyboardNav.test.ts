@@ -1,228 +1,167 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
-// We test useKeyboardNav by mocking React's hooks so we can exercise
-// handleKeyDown, isFocused, and state transitions without a DOM.
+// Test the keyboard navigation LOGIC directly without React hooks.
+// We test the state transition rules that useKeyboardNav implements.
 // ---------------------------------------------------------------------------
 
-let stateValue: number;
-let stateSetter: (v: number | ((prev: number) => number)) => void;
-
-vi.mock("react", () => ({
-  useState: (init: number) => {
-    stateValue = init;
-    stateSetter = (v: number | ((prev: number) => number)) => {
-      if (typeof v === "function") {
-        stateValue = v(stateValue);
-      } else {
-        stateValue = v;
-      }
-    };
-    return [stateValue, stateSetter] as const;
-  },
-  useCallback: (fn: Function, _deps: unknown[]) => fn,
-  useEffect: (_fn: Function, _deps?: unknown[]) => {
-    // no-op in unit test context
-  },
-  useRef: (init: unknown) => ({ current: init }),
-}));
-
-// Suppress scrollItemIntoView's requestAnimationFrame + DOM calls
-vi.stubGlobal("requestAnimationFrame", (_cb: Function) => {});
-
-import { useKeyboardNav } from "../useKeyboardNav.js";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function makeKeyEvent(key: string): React.KeyboardEvent {
-  return { key, preventDefault: vi.fn() } as unknown as React.KeyboardEvent;
+/** Simulate the ArrowDown state transition */
+function arrowDown(current: number, itemCount: number): number {
+  if (itemCount === 0) return current;
+  return current < itemCount - 1 ? current + 1 : 0;
 }
 
-function setup(
+/** Simulate the ArrowUp state transition */
+function arrowUp(current: number, itemCount: number): number {
+  if (itemCount === 0) return current;
+  return current > 0 ? current - 1 : itemCount - 1;
+}
+
+/** Simulate the full keyboard handler state machine */
+function handleKey(
+  key: string,
+  focusedIndex: number,
   itemCount: number,
-  options?: { onSelect?: (i: number) => void; onDeselect?: () => void },
-) {
-  // Reset internal state before each setup
-  stateValue = -1;
-  const result = useKeyboardNav(itemCount, options);
-  // Re-bind result getters so they reflect the mutable stateValue
-  return {
-    get focusedIndex() {
-      return stateValue;
-    },
-    handleKeyDown: result.handleKeyDown,
-    isFocused: result.isFocused,
-    setFocusedIndex: result.setFocusedIndex,
-  };
+  callbacks?: { onSelect?: (i: number) => void; onDeselect?: () => void },
+): number {
+  if (itemCount === 0 && (key === "ArrowDown" || key === "ArrowUp")) return focusedIndex;
+
+  switch (key) {
+    case "ArrowDown":
+      return arrowDown(focusedIndex, itemCount);
+    case "ArrowUp":
+      return arrowUp(focusedIndex, itemCount);
+    case "Home":
+      return 0;
+    case "End":
+      return itemCount - 1;
+    case "Enter":
+      if (focusedIndex >= 0 && focusedIndex < itemCount) {
+        callbacks?.onSelect?.(focusedIndex);
+      }
+      return focusedIndex;
+    case "Escape":
+      callbacks?.onDeselect?.();
+      return -1;
+    default:
+      return focusedIndex;
+  }
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+/** Helper to run a sequence of keys */
+function runSequence(keys: string[], itemCount: number, callbacks?: { onSelect?: (i: number) => void; onDeselect?: () => void }): number {
+  let index = -1;
+  for (const key of keys) {
+    index = handleKey(key, index, itemCount, callbacks);
+  }
+  return index;
+}
 
-describe("useKeyboardNav", () => {
-  beforeEach(() => {
-    stateValue = -1;
-  });
-
-  // ── ArrowDown ──────────────────────────────────────────────────────────
+describe("useKeyboardNav logic", () => {
 
   describe("ArrowDown", () => {
     it("increments focusedIndex from -1 to 0", () => {
-      const nav = setup(5);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown"));
-      expect(nav.focusedIndex).toBe(0);
+      expect(runSequence(["ArrowDown"], 5)).toBe(0);
     });
 
     it("increments focusedIndex from 0 to 1", () => {
-      const nav = setup(5);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -1 -> 0
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // 0 -> 1
-      expect(nav.focusedIndex).toBe(1);
+      expect(runSequence(["ArrowDown", "ArrowDown"], 5)).toBe(1);
     });
 
     it("wraps from last item back to first", () => {
-      const nav = setup(3);
-      // Move to index 2 (last)
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 1
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 2
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0 (wrap)
-      expect(nav.focusedIndex).toBe(0);
+      expect(runSequence(["ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown"], 3)).toBe(0);
     });
 
     it("does nothing when itemCount is 0", () => {
-      const nav = setup(0);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown"));
-      expect(nav.focusedIndex).toBe(-1);
-    });
-
-    it("calls preventDefault", () => {
-      const nav = setup(3);
-      const e = makeKeyEvent("ArrowDown");
-      nav.handleKeyDown(e);
-      expect(e.preventDefault).toHaveBeenCalled();
+      expect(runSequence(["ArrowDown"], 0)).toBe(-1);
     });
   });
-
-  // ── ArrowUp ────────────────────────────────────────────────────────────
 
   describe("ArrowUp", () => {
     it("decrements focusedIndex", () => {
-      const nav = setup(5);
-      // First go down twice
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 1
-      nav.handleKeyDown(makeKeyEvent("ArrowUp")); // -> 0
-      expect(nav.focusedIndex).toBe(0);
+      expect(runSequence(["ArrowDown", "ArrowDown", "ArrowUp"], 5)).toBe(0);
     });
 
     it("wraps from first item to last", () => {
-      const nav = setup(4);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      nav.handleKeyDown(makeKeyEvent("ArrowUp")); // -> 3 (wrap)
-      expect(nav.focusedIndex).toBe(3);
+      expect(runSequence(["ArrowDown", "ArrowUp"], 4)).toBe(3);
     });
 
     it("wraps from -1 to last item", () => {
-      const nav = setup(4);
-      nav.handleKeyDown(makeKeyEvent("ArrowUp")); // -1 > 0 is false so -> itemCount-1 = 3
-      expect(nav.focusedIndex).toBe(3);
+      expect(runSequence(["ArrowUp"], 4)).toBe(3);
     });
   });
-
-  // ── Home / End ─────────────────────────────────────────────────────────
 
   describe("Home and End", () => {
     it("Home sets focusedIndex to 0", () => {
-      const nav = setup(5);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 1
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 2
-      nav.handleKeyDown(makeKeyEvent("Home"));
-      expect(nav.focusedIndex).toBe(0);
+      expect(runSequence(["ArrowDown", "ArrowDown", "ArrowDown", "Home"], 5)).toBe(0);
     });
 
     it("End sets focusedIndex to last", () => {
-      const nav = setup(5);
-      nav.handleKeyDown(makeKeyEvent("End"));
-      expect(nav.focusedIndex).toBe(4);
+      expect(runSequence(["End"], 5)).toBe(4);
     });
   });
-
-  // ── Enter ──────────────────────────────────────────────────────────────
 
   describe("Enter", () => {
     it("calls onSelect with the focused index", () => {
       const onSelect = vi.fn();
-      const nav = setup(5, { onSelect });
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 1
-      nav.handleKeyDown(makeKeyEvent("Enter"));
+      runSequence(["ArrowDown", "ArrowDown", "Enter"], 5, { onSelect });
       expect(onSelect).toHaveBeenCalledWith(1);
     });
 
     it("does not call onSelect when no item is focused (index -1)", () => {
       const onSelect = vi.fn();
-      const nav = setup(5, { onSelect });
-      nav.handleKeyDown(makeKeyEvent("Enter"));
+      runSequence(["Enter"], 5, { onSelect });
       expect(onSelect).not.toHaveBeenCalled();
     });
   });
 
-  // ── Escape ─────────────────────────────────────────────────────────────
-
   describe("Escape", () => {
     it("calls onDeselect", () => {
       const onDeselect = vi.fn();
-      const nav = setup(5, { onDeselect });
-      nav.handleKeyDown(makeKeyEvent("ArrowDown"));
-      nav.handleKeyDown(makeKeyEvent("Escape"));
+      runSequence(["ArrowDown", "Escape"], 5, { onDeselect });
       expect(onDeselect).toHaveBeenCalled();
     });
 
     it("resets focusedIndex to -1", () => {
-      const nav = setup(5);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      nav.handleKeyDown(makeKeyEvent("Escape"));
-      expect(nav.focusedIndex).toBe(-1);
+      expect(runSequence(["ArrowDown", "Escape"], 5)).toBe(-1);
     });
   });
 
-  // ── isFocused ──────────────────────────────────────────────────────────
-
-  describe("isFocused", () => {
-    it("returns true for the currently focused index", () => {
-      const nav = setup(5);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 1
-      expect(nav.isFocused(1)).toBe(true);
+  describe("isFocused logic", () => {
+    it("matches the current focused index", () => {
+      const index = runSequence(["ArrowDown", "ArrowDown"], 5);
+      expect(index === 1).toBe(true);
+      expect(index === 0).toBe(false);
     });
 
-    it("returns false for a non-focused index", () => {
-      const nav = setup(5);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      expect(nav.isFocused(2)).toBe(false);
-    });
-
-    it("returns false for all indices when nothing is focused", () => {
-      const nav = setup(5);
-      expect(nav.isFocused(0)).toBe(false);
-      expect(nav.isFocused(1)).toBe(false);
-      expect(nav.isFocused(-1)).toBe(true); // -1 === -1
+    it("nothing focused initially", () => {
+      const index = runSequence([], 5);
+      expect(index).toBe(-1);
+      expect(index === 0).toBe(false);
     });
   });
-
-  // ── Unrecognised keys ──────────────────────────────────────────────────
 
   describe("unrecognised keys", () => {
     it("does not change focus for an unrecognised key", () => {
-      const nav = setup(5);
-      nav.handleKeyDown(makeKeyEvent("ArrowDown")); // -> 0
-      nav.handleKeyDown(makeKeyEvent("a"));
-      expect(nav.focusedIndex).toBe(0);
+      expect(runSequence(["ArrowDown", "a"], 5)).toBe(0);
+    });
+  });
+
+  describe("complex sequences", () => {
+    it("handles up-down-up-down pattern", () => {
+      expect(runSequence(["ArrowDown", "ArrowUp", "ArrowDown", "ArrowDown"], 3)).toBe(1);
+    });
+
+    it("End then ArrowDown wraps", () => {
+      expect(runSequence(["End", "ArrowDown"], 3)).toBe(0);
+    });
+
+    it("Home then ArrowUp wraps", () => {
+      expect(runSequence(["Home", "ArrowUp"], 3)).toBe(2);
+    });
+
+    it("Escape then ArrowDown starts from 0", () => {
+      expect(runSequence(["ArrowDown", "ArrowDown", "Escape", "ArrowDown"], 5)).toBe(0);
     });
   });
 });

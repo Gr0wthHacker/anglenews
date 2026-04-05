@@ -20,7 +20,7 @@ interface RawArticle {
   domain: string;
   publishedAt: string | null;
   imageUrl: string | null;
-  apiSource: string;
+  apiSource: "newsdata" | "gdelt" | "googlenews" | "thenewsapi";
 }
 
 function makeArticle(overrides: Partial<RawArticle> = {}): RawArticle {

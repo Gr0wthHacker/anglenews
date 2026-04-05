@@ -7,29 +7,26 @@ vi.stubGlobal("chrome", {
   storage: {
     local: {
       get: vi.fn(
-        (
-          keys: string | string[],
-          cb: (result: Record<string, any>) => void,
-        ) => {
+        (keys: string | string[]) => {
           const result: Record<string, any> = {};
           const keyList = Array.isArray(keys) ? keys : [keys];
           keyList.forEach((k) => {
             if (store[k] !== undefined) result[k] = store[k];
           });
-          cb(result);
+          return Promise.resolve(result);
         },
       ),
       set: vi.fn(
-        (data: Record<string, any>, cb?: () => void) => {
+        (data: Record<string, any>) => {
           Object.assign(store, data);
-          cb?.();
+          return Promise.resolve();
         },
       ),
       remove: vi.fn(
-        (keys: string | string[], cb?: () => void) => {
+        (keys: string | string[]) => {
           const keyList = Array.isArray(keys) ? keys : [keys];
           keyList.forEach((k) => delete store[k]);
-          cb?.();
+          return Promise.resolve();
         },
       ),
     },
@@ -134,9 +131,14 @@ describe("ExtensionCache", () => {
       );
 
       const promise1 = cache.getOrFetch("dedup-test", fetchFn);
-      const promise2 = cache.getOrFetch("dedup-test", fetchFn);
+      // Allow the first cache.get() to resolve so fetchFn gets called
+      await new Promise((r) => setTimeout(r, 10));
 
-      // fetchFn should only be called once
+      const promise2 = cache.getOrFetch("dedup-test", fetchFn);
+      // Allow the second cache.get() to resolve
+      await new Promise((r) => setTimeout(r, 10));
+
+      // fetchFn should only be called once — second call should reuse pending promise
       expect(fetchFn).toHaveBeenCalledTimes(1);
 
       resolvePromise!("deduped-result");
