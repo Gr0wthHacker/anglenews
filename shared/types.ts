@@ -167,14 +167,7 @@ export type ExtensionMessage =
 
 export interface UserPreferences {
   apiKey: string | null;
-  maxSourcesPerQuery: number; // default 15
-  cacheTTLHours: number; // default 4
-  preferredSources: string[];
-  excludedSources: string[];
-  showBiasLabels: boolean; // default true
-  autoDetectArticles: boolean; // default false
   theme: "light" | "dark" | "system";
-  compactMode: boolean; // default false
 }
 
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
