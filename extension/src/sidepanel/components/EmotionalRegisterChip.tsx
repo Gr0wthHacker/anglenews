@@ -6,12 +6,13 @@ import {
   Swords,
   Heart,
   Ban,
+  type LucideIcon,
 } from "lucide-react";
 import type { EmotionalRegister } from "@shared/types";
 
 const REGISTER_CONFIG: Record<
   EmotionalRegister,
-  { color: string; label: string; Icon: React.FC<{ size?: number }> }
+  { color: string; label: string; Icon: LucideIcon }
 > = {
   alarm: { color: "#ef4444", label: "Alarm", Icon: AlertTriangle },
   neutral: { color: "#6b7280", label: "Neutral", Icon: Minus },
