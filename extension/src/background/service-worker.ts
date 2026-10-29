@@ -23,6 +23,12 @@ interface TabState {
 const tabStates = new Map<number, TabState>();
 
 const CACHE_CLEANUP_ALARM = "ac_cache_cleanup";
+
+// Path inside the built extension (dist/), matching side_panel.default_path in manifest.json.
+const SIDE_PANEL_PATH = "sidepanel/index.html";
+
+/** Article bodies shorter than this are treated as "not a news article" (same rule as the popup). */
+const MIN_ARTICLE_BODY = 80;
 const CLEANUP_INTERVAL_MINUTES = 60;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -131,6 +137,71 @@ async function analyzeArticle(
   }
 }
 
+// ─── Active tab helpers ─────────────────────────────────────────────────────
+
+async function activeTabId(): Promise<number | undefined> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab?.id;
+}
+
+/** Messages from the popup or side panel have no sender tab; use the active tab. */
+async function withTabId(senderTabId: number | undefined): Promise<number | undefined> {
+  return senderTabId ?? (await activeTabId());
+}
+
+/** Synthetic article for a topic-only search (same shape the popup builds). */
+function topicArticle(topic: string): ArticleData {
+  const text = topic.trim();
+  return {
+    headline: text,
+    body: text,
+    byline: null,
+    siteName: null,
+    url: "",
+    domain: "manual-search",
+    publishDate: null,
+    imageUrl: null,
+  };
+}
+
+/**
+ * Side panel entry point: reuse a finished analysis for the active tab, or
+ * extract the article from the page and analyze it.
+ */
+async function analyzeActiveTab(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id === undefined) {
+    broadcast({ type: "ANALYSIS_ERROR", error: "Open a news article, then try again." });
+    return;
+  }
+
+  const state = tabStates.get(tab.id);
+  if (state?.status === "complete" && state.data && state.url === tab.url) {
+    broadcast({ type: "ANALYSIS_COMPLETE", data: state.data });
+    return;
+  }
+
+  let article: ArticleData | undefined;
+  try {
+    const response = (await chrome.tabs.sendMessage(tab.id, {
+      type: "EXTRACT_ARTICLE",
+    } satisfies ExtensionMessage)) as ExtensionMessage | undefined;
+    if (response?.type === "ARTICLE_EXTRACTED") article = response.data;
+  } catch {
+    // No content script on this page (e.g. chrome:// pages or the Web Store).
+  }
+
+  if (!article || !article.body || article.body.trim().length < MIN_ARTICLE_BODY) {
+    broadcast({
+      type: "ANALYSIS_ERROR",
+      error: "This page doesn't look like a news article. Search a topic instead.",
+    });
+    return;
+  }
+
+  await analyzeArticle(article, tab.id);
+}
+
 // ─── Extension icon click ───────────────────────────────────────────────────
 
 chrome.action.onClicked.addListener(async (tab) => {
@@ -139,7 +210,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   // Enable the side panel for this tab
   await chrome.sidePanel.setOptions({
     tabId: tab.id,
-    path: "src/sidepanel/index.html",
+    path: SIDE_PANEL_PATH,
     enabled: true,
   });
 
@@ -159,8 +230,21 @@ chrome.runtime.onMessage.addListener(
 
     switch (message.type) {
       case "ANALYZE_ARTICLE": {
-        // Run async analysis — respond immediately, result comes via broadcast
-        analyzeArticle(message.data, senderTabId);
+        // Run async analysis — respond immediately, result comes via broadcast.
+        // The popup sends the extracted article; the side panel sends no data
+        // and the article is extracted from the active tab here.
+        const data = (message as Partial<{ data: ArticleData }>).data;
+        if (data) {
+          withTabId(senderTabId).then((tabId) => analyzeArticle(data, tabId));
+        } else {
+          analyzeActiveTab();
+        }
+        sendResponse({ received: true });
+        return false;
+      }
+
+      case "MANUAL_TOPIC_SEARCH": {
+        withTabId(senderTabId).then((tabId) => analyzeArticle(topicArticle(message.topic), tabId));
         sendResponse({ received: true });
         return false;
       }
@@ -198,6 +282,12 @@ async function handleGetCached(
     // We don't know the headline for fingerprinting from just a URL, so we
     // do a reverse lookup: scan cached entries whose stored data matches the URL.
     // For efficiency, also try a simple URL-based key.
+    const tabId = await activeTabId();
+    const state = tabId === undefined ? undefined : tabStates.get(tabId);
+    if (state?.status === "complete" && state.data && state.url === url) {
+      sendResponse({ type: "CACHED_RESULT", data: state.data } satisfies ExtensionMessage);
+      return;
+    }
     const urlKey = `url_${url}`;
     const result = await cache.get<AngleComparison>(urlKey);
     sendResponse({ type: "CACHED_RESULT", data: result } satisfies ExtensionMessage);
@@ -241,7 +331,7 @@ async function handleOpenSidePanel(): Promise<void> {
     if (tab?.id !== undefined) {
       await chrome.sidePanel.setOptions({
         tabId: tab.id,
-        path: "src/sidepanel/index.html",
+        path: SIDE_PANEL_PATH,
         enabled: true,
       });
       await chrome.sidePanel.open({ tabId: tab.id });
