@@ -1,287 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { UserPreferences } from "@shared/types";
-import type { BiasRating } from "@shared/types";
 import { API_BASE_URL } from "@shared/constants";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   apiKey: null,
-  maxSourcesPerQuery: 15,
-  cacheTTLHours: 4,
-  preferredSources: [],
-  excludedSources: [],
-  showBiasLabels: true,
-  autoDetectArticles: false,
   theme: "system",
-  compactMode: false,
 };
 
 const STORAGE_KEY = "userPreferences";
 
-const CACHE_DURATION_OPTIONS = [
-  { value: 1, label: "1 hour" },
-  { value: 2, label: "2 hours" },
-  { value: 4, label: "4 hours" },
-  { value: 8, label: "8 hours" },
-  { value: 12, label: "12 hours" },
-  { value: 24, label: "24 hours" },
-];
-
-interface KnownSource {
-  domain: string;
-  name: string;
-  bias: BiasRating;
-}
-
-const KNOWN_SOURCES: KnownSource[] = [
-  { domain: "apnews.com", name: "AP News", bias: "center" },
-  { domain: "reuters.com", name: "Reuters", bias: "center" },
-  { domain: "bbc.com", name: "BBC News", bias: "left-center" },
-  { domain: "npr.org", name: "NPR", bias: "left-center" },
-  { domain: "pbs.org", name: "PBS NewsHour", bias: "center" },
-  { domain: "nytimes.com", name: "The New York Times", bias: "left-center" },
-  { domain: "washingtonpost.com", name: "Washington Post", bias: "left-center" },
-  { domain: "theguardian.com", name: "The Guardian", bias: "left-center" },
-  { domain: "cnn.com", name: "CNN", bias: "left" },
-  { domain: "msnbc.com", name: "MSNBC", bias: "left" },
-  { domain: "foxnews.com", name: "Fox News", bias: "right" },
-  { domain: "wsj.com", name: "Wall Street Journal", bias: "right-center" },
-  { domain: "economist.com", name: "The Economist", bias: "left-center" },
-  { domain: "aljazeera.com", name: "Al Jazeera", bias: "left-center" },
-  { domain: "nbcnews.com", name: "NBC News", bias: "left-center" },
-  { domain: "cbsnews.com", name: "CBS News", bias: "left-center" },
-  { domain: "abcnews.go.com", name: "ABC News", bias: "left-center" },
-  { domain: "usatoday.com", name: "USA Today", bias: "left-center" },
-  { domain: "politico.com", name: "Politico", bias: "left-center" },
-  { domain: "thehill.com", name: "The Hill", bias: "center" },
-  { domain: "breitbart.com", name: "Breitbart", bias: "far-right" },
-  { domain: "huffpost.com", name: "HuffPost", bias: "left" },
-  { domain: "dailywire.com", name: "Daily Wire", bias: "right" },
-  { domain: "vox.com", name: "Vox", bias: "left" },
-  { domain: "nationalreview.com", name: "National Review", bias: "right" },
-  { domain: "theatlantic.com", name: "The Atlantic", bias: "left-center" },
-  { domain: "newsweek.com", name: "Newsweek", bias: "center" },
-  { domain: "time.com", name: "Time", bias: "left-center" },
-  { domain: "bloomberg.com", name: "Bloomberg", bias: "left-center" },
-  { domain: "axios.com", name: "Axios", bias: "center" },
-];
-
-const BIAS_BADGE_COLORS: Record<BiasRating, { bg: string; text: string }> = {
-  "far-left": { bg: "bg-blue-900", text: "text-white" },
-  left: { bg: "bg-blue-600", text: "text-white" },
-  "left-center": { bg: "bg-blue-300", text: "text-blue-900" },
-  center: { bg: "bg-gray-300", text: "text-gray-800" },
-  "right-center": { bg: "bg-red-300", text: "text-red-900" },
-  right: { bg: "bg-red-600", text: "text-white" },
-  "far-right": { bg: "bg-red-900", text: "text-white" },
-};
-
 const EXTENSION_VERSION = "1.0.0";
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
-
-function ToggleSwitch({
-  enabled,
-  onChange,
-  id,
-}: {
-  enabled: boolean;
-  onChange: (value: boolean) => void;
-  id: string;
-}) {
-  return (
-    <button
-      id={id}
-      role="switch"
-      aria-checked={enabled}
-      onClick={() => onChange(!enabled)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-angle-blue focus:ring-offset-2 ${
-        enabled ? "bg-angle-blue" : "bg-gray-300"
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          enabled ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-}
-
-function Slider({
-  value,
-  min,
-  max,
-  onChange,
-  id,
-}: {
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-  id: string;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-angle-blue"
-      />
-      <span className="min-w-[2.5rem] rounded bg-gray-100 px-2 py-0.5 text-center text-sm font-medium text-gray-700">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function BiasBadge({ bias }: { bias: BiasRating }) {
-  const colors = BIAS_BADGE_COLORS[bias];
-  const label = bias
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-  return (
-    <span
-      className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-tight ${colors.bg} ${colors.text}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function TagInput({
-  selected,
-  onChange,
-  exclude,
-  label,
-  id,
-}: {
-  selected: string[];
-  onChange: (domains: string[]) => void;
-  exclude: string[];
-  label: string;
-  id: string;
-}) {
-  const [query, setQuery] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const available = KNOWN_SOURCES.filter(
-    (s) => !selected.includes(s.domain) && !exclude.includes(s.domain),
-  );
-
-  const filtered = query.trim()
-    ? available.filter(
-        (s) =>
-          s.name.toLowerCase().includes(query.toLowerCase()) ||
-          s.domain.toLowerCase().includes(query.toLowerCase()),
-      )
-    : available;
-
-  const addSource = (domain: string) => {
-    onChange([...selected, domain]);
-    setQuery("");
-    setIsOpen(false);
-  };
-
-  const removeSource = (domain: string) => {
-    onChange(selected.filter((d) => d !== domain));
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const selectedSources = selected
-    .map((d) => KNOWN_SOURCES.find((s) => s.domain === d))
-    .filter((s): s is KnownSource => s !== undefined);
-
-  return (
-    <div ref={containerRef} className="relative">
-      <label className="mb-1 block text-sm font-medium text-gray-700">
-        {label}
-      </label>
-
-      {selectedSources.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {selectedSources.map((source) => (
-            <span
-              key={source.domain}
-              className="inline-flex items-center gap-1 rounded-full bg-gray-100 py-0.5 pl-2.5 pr-1 text-sm text-gray-700"
-            >
-              {source.name}
-              <BiasBadge bias={source.bias} />
-              <button
-                onClick={() => removeSource(source.domain)}
-                className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-gray-400 hover:bg-gray-300 hover:text-gray-600"
-                aria-label={`Remove ${source.name}`}
-              >
-                &times;
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      <input
-        id={id}
-        type="text"
-        placeholder="Type to search sources..."
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setIsOpen(true);
-        }}
-        onFocus={() => setIsOpen(true)}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-angle-blue focus:outline-none focus:ring-1 focus:ring-angle-blue"
-      />
-
-      {isOpen && filtered.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
-          {filtered.map((source) => (
-            <li key={source.domain}>
-              <button
-                onClick={() => addSource(source.domain)}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50"
-              >
-                <span>
-                  <span className="font-medium text-gray-800">
-                    {source.name}
-                  </span>
-                  <span className="ml-1.5 text-xs text-gray-400">
-                    {source.domain}
-                  </span>
-                </span>
-                <BiasBadge bias={source.bias} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {isOpen && query.trim() && filtered.length === 0 && (
-        <div className="absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg">
-          No matching sources found
-        </div>
-      )}
-    </div>
-  );
-}
 
 function SaveToast({ visible }: { visible: boolean }) {
   return (
@@ -352,8 +84,17 @@ async function clearCache(): Promise<void> {
 async function loadPreferences(): Promise<UserPreferences> {
   try {
     const result = await chrome.storage.sync.get(STORAGE_KEY);
-    if (result[STORAGE_KEY]) {
-      return { ...DEFAULT_PREFERENCES, ...result[STORAGE_KEY] };
+    const stored = result[STORAGE_KEY];
+    if (stored && typeof stored === "object") {
+      // Only known keys are kept, so settings removed in earlier versions
+      // drop out of storage on the next save.
+      return {
+        apiKey: typeof stored.apiKey === "string" ? stored.apiKey : null,
+        theme:
+          stored.theme === "light" || stored.theme === "dark"
+            ? stored.theme
+            : "system",
+      };
     }
   } catch {
     // Not running in extension context
@@ -474,8 +215,7 @@ export function Options() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">AngleCheck Settings</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Configure how AngleCheck analyzes and displays news article
-          comparisons.
+          Settings for the AngleCheck connection and side panel.
         </p>
       </div>
 
@@ -584,124 +324,11 @@ export function Options() {
         </div>
       </Section>
 
-      {/* 2. Analysis Settings */}
-      <Section>
-        <SectionHeading>Analysis Settings</SectionHeading>
-
-        <div className="space-y-5">
-          <div>
-            <label
-              htmlFor="maxSources"
-              className="mb-2 block text-sm font-medium text-gray-700"
-            >
-              Max sources per query
-            </label>
-            <Slider
-              id="maxSources"
-              value={prefs.maxSourcesPerQuery}
-              min={5}
-              max={25}
-              onChange={(v) => updatePrefs({ maxSourcesPerQuery: v })}
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Higher values provide broader coverage but may take longer.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="cacheDuration"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Cache duration
-            </label>
-            <select
-              id="cacheDuration"
-              value={prefs.cacheTTLHours}
-              onChange={(e) =>
-                updatePrefs({ cacheTTLHours: Number(e.target.value) })
-              }
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-angle-blue focus:outline-none focus:ring-1 focus:ring-angle-blue"
-            >
-              {CACHE_DURATION_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">
-              How long to keep cached article comparisons before refreshing.
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      {/* 3. Source Preferences */}
-      <Section>
-        <SectionHeading>Source Preferences</SectionHeading>
-
-        <div className="space-y-5">
-          <TagInput
-            id="preferredSources"
-            label="Preferred Sources"
-            selected={prefs.preferredSources}
-            onChange={(domains) => updatePrefs({ preferredSources: domains })}
-            exclude={prefs.excludedSources}
-          />
-
-          <TagInput
-            id="excludedSources"
-            label="Excluded Sources"
-            selected={prefs.excludedSources}
-            onChange={(domains) => updatePrefs({ excludedSources: domains })}
-            exclude={prefs.preferredSources}
-          />
-        </div>
-      </Section>
-
-      {/* 4. Display Settings */}
+      {/* 2. Display Settings */}
       <Section>
         <SectionHeading>Display Settings</SectionHeading>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <label
-                htmlFor="showBiasLabels"
-                className="text-sm font-medium text-gray-700"
-              >
-                Show bias labels
-              </label>
-              <p className="text-xs text-gray-500">
-                Display political bias indicators on sources.
-              </p>
-            </div>
-            <ToggleSwitch
-              id="showBiasLabels"
-              enabled={prefs.showBiasLabels}
-              onChange={(v) => updatePrefs({ showBiasLabels: v })}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <label
-                htmlFor="autoDetect"
-                className="text-sm font-medium text-gray-700"
-              >
-                Auto-detect articles
-              </label>
-              <p className="text-xs text-amber-600">
-                May increase resource usage
-              </p>
-            </div>
-            <ToggleSwitch
-              id="autoDetect"
-              enabled={prefs.autoDetectArticles}
-              onChange={(v) => updatePrefs({ autoDetectArticles: v })}
-            />
-          </div>
-
           <div>
             <span className="mb-2 block text-sm font-medium text-gray-700">
               Theme
@@ -729,29 +356,10 @@ export function Options() {
               ))}
             </div>
           </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <label
-                htmlFor="compactMode"
-                className="text-sm font-medium text-gray-700"
-              >
-                Compact mode
-              </label>
-              <p className="text-xs text-gray-500">
-                Reduce spacing and use smaller text in the side panel.
-              </p>
-            </div>
-            <ToggleSwitch
-              id="compactMode"
-              enabled={prefs.compactMode}
-              onChange={(v) => updatePrefs({ compactMode: v })}
-            />
-          </div>
         </div>
       </Section>
 
-      {/* 5. Data & Privacy */}
+      {/* 3. Data & Privacy */}
       <Section>
         <SectionHeading>Data &amp; Privacy</SectionHeading>
 
@@ -818,7 +426,7 @@ export function Options() {
         </div>
       </Section>
 
-      {/* 6. About */}
+      {/* 4. About */}
       <Section>
         <SectionHeading>About</SectionHeading>
 

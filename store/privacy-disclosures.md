@@ -19,7 +19,7 @@ When the user clicks the AngleCheck toolbar button, this gives temporary access 
 Shows the full comparison (framing, angle groups, coverage gaps, tone and source list) in Chrome's side panel next to the article. The popup's "Open full comparison" button opens it (`background/service-worker.ts`).
 
 **storage**
-Saves the user's settings (`chrome.storage.sync`, key `userPreferences`: theme, compact mode, bias labels and the other options on the settings page, including an API key if the user enters one). Caches comparison results for 4 hours, and keeps the last 20 comparisons and last 10 topic searches so the user can reopen them (`chrome.storage.local`; `lib/cache.ts`, `HistoryPanel.tsx`, `TopicSearch.tsx`). The user can clear the cache on the settings page.
+Saves the user's settings (`chrome.storage.sync`, key `userPreferences`: the theme, and an API key if the user enters one). Caches comparison results for 4 hours, and keeps the last 20 comparisons and last 10 topic searches so the user can reopen them (`chrome.storage.local`; `lib/cache.ts`, `HistoryPanel.tsx`, `TopicSearch.tsx`). The user can clear the cache on the settings page.
 
 **alarms**
 Runs an hourly cleanup that deletes expired cached comparisons from local storage (`background/service-worker.ts`).
