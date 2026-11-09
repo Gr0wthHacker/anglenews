@@ -37,6 +37,21 @@ analyzeRoute.post(
   async (c) => {
   const startTime = Date.now();
 
+  // Without a key every model call fails with Anthropic's raw 401 text, which
+  // reached the extension as the error message. Say what is wrong instead.
+  if (!config.anthropicApiKey) {
+    return c.json<AnalyzeResponse>(
+      {
+        success: false,
+        comparison: null,
+        error: "AngleCheck analysis is not available right now. Please try again later.",
+        cached: false,
+        code: "ANALYSIS_NOT_CONFIGURED",
+      },
+      503
+    );
+  }
+
   // Body already validated by middleware; Hono caches the parsed JSON
   const body = await c.req.json<AnalyzeRequest>();
   const bodyExcerpt = body.body_excerpt || "";
