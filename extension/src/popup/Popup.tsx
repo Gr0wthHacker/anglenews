@@ -118,6 +118,10 @@ export default function Popup() {
   const [searchTopic, setSearchTopic] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const hasInitiated = useRef(false);
+  // Active tab id, read on mount so the side panel can be opened inside the
+  // click handler: chrome.sidePanel.open() needs the user gesture, which does
+  // not survive an await or a message to the service worker.
+  const activeTabIdRef = useRef<number | undefined>(undefined);
 
   // Listen for broadcast messages from the service worker
   useEffect(() => {
@@ -145,6 +149,10 @@ export default function Popup() {
       setState({ kind: "not-article" });
       return;
     }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      activeTabIdRef.current = tabs[0]?.id;
+    });
 
     chrome.runtime.sendMessage({ type: "GET_ANALYSIS_STATUS" } satisfies ExtensionMessage, (response) => {
       if (chrome.runtime.lastError) {
@@ -264,6 +272,19 @@ export default function Popup() {
   const handleOpenSidePanel = useCallback(() => {
     if (!isExtensionContext) {
       console.warn('Not in extension context');
+      return;
+    }
+    const tabId = activeTabIdRef.current;
+    if (tabId !== undefined && chrome.sidePanel?.open) {
+      // Called synchronously in the click handler so the user gesture counts.
+      chrome.sidePanel
+        .open({ tabId })
+        .then(() => window.close())
+        .catch(() => {
+          chrome.runtime.sendMessage({ type: "OPEN_SIDEPANEL" } satisfies ExtensionMessage, () => {
+            window.close();
+          });
+        });
       return;
     }
     chrome.runtime.sendMessage({ type: "OPEN_SIDEPANEL" } satisfies ExtensionMessage, () => {
