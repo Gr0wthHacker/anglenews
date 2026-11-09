@@ -122,7 +122,8 @@ async function analyzeArticle(
       errorMessage = "The analysis request timed out. Please try again.";
     } else if (err instanceof ApiError) {
       if (err.isRateLimited) {
-        errorMessage = "Rate limit exceeded. Please wait a few minutes and try again.";
+        // The server's message states the real window (requests per day).
+        errorMessage = err.message || "Rate limit exceeded. Please try again later.";
       } else {
         errorMessage = `Analysis failed: ${err.message}`;
       }
