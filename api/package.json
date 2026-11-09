@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').cpSync('../shared/bias-ratings.json','dist/shared/bias-ratings.json')\"",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest"

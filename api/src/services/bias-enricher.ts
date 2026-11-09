@@ -1,13 +1,23 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { BiasRating, FactualRating, SourceBias } from "../../../shared/types.js";
 
 // ─── Load bias data ─────────────────────────────────────────────────────────
 
-// Resolve bias-ratings.json relative to the project root.
-// In compiled output (__dirname = api/dist/services), walk up to project root.
-// In tsx dev mode (__dirname = api/src/services), same relative traversal works.
-const BIAS_DATA_PATH = resolve(__dirname, "..", "..", "..", "..", "shared", "bias-ratings.json");
+// Find shared/bias-ratings.json by walking up from this file. Compiled output
+// sits at api/dist/api/src/services and tsx dev mode at api/src/services, so the
+// number of levels differs; the first directory that has the file wins.
+function findBiasDataPath(): string {
+  let dir = __dirname;
+  for (let i = 0; i < 8; i++) {
+    const candidate = resolve(dir, "shared", "bias-ratings.json");
+    if (existsSync(candidate)) return candidate;
+    dir = resolve(dir, "..");
+  }
+  return resolve(__dirname, "..", "..", "..", "shared", "bias-ratings.json");
+}
+
+const BIAS_DATA_PATH = findBiasDataPath();
 
 interface BiasEntry {
   domain: string;
