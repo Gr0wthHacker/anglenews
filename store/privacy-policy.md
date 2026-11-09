@@ -27,11 +27,9 @@ The finished comparison, which includes the headline and address of the article 
 
 The side panel shows each listed outlet's icon using Google's favicon service, which receives the outlet's domain name.
 
-If you enter an API key on the settings page and click "Test connection", the key is sent to the AngleCheck server to check it. It is not sent with analysis requests.
-
 ## What AngleCheck stores on your device
 
-- Your settings, in Chrome's sync storage, which Chrome may sync to other browsers where you are signed in. This includes the API key if you enter one.
+- Your settings, in Chrome's sync storage, which Chrome may sync to other browsers where you are signed in.
 - Comparison results, cached for 4 hours, in local extension storage.
 - Your last 20 comparisons and last 10 topic searches, in local extension storage, so you can reopen them.
 
