@@ -1,4 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { config } from "../lib/config.js";
+import { createMemo, hashKey } from "../lib/memo.js";
+import { logUsage } from "../lib/usage.js";
 import type { RawArticle } from "./news-fetcher.js";
 import type {
   AngleAnalysis,
@@ -16,8 +19,9 @@ export interface ExtractedAngle {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const MODEL = "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 1000;
+const BODY_CHARS = 3000;
+const ANGLE_CACHE_MAX = 5000;
 const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 200;
 
@@ -30,7 +34,7 @@ const VALID_REGISTERS: readonly EmotionalRegister[] = [
   "dismissive",
 ];
 
-const SYSTEM_PROMPT =
+export const SYSTEM_PROMPT =
   "You are a media analysis expert. Extract structured journalistic angle metadata from news articles. Always respond with valid JSON only, no markdown.";
 
 const STRICT_SYSTEM_PROMPT =
@@ -38,13 +42,13 @@ const STRICT_SYSTEM_PROMPT =
 
 // ─── Prompt builder ─────────────────────────────────────────────────────────
 
-function buildUserPrompt(headline: string, bodyText: string): string {
+export function buildUserPrompt(headline: string, bodyText: string): string {
   return `Analyze this news article and extract the following structured metadata as JSON.
 
 Headline: "${headline}"
 
 Article body:
-${bodyText.slice(0, 3000)}
+${bodyText.slice(0, BODY_CHARS)}
 
 Return a JSON object with exactly these fields:
 
@@ -136,7 +140,27 @@ function parseAngleResponse(raw: string): AngleAnalysis {
 
 // ─── Single article extraction ──────────────────────────────────────────────
 
+/**
+ * The same headline and body always build the same prompt, so the earlier answer is reused: an
+ * article that shows up under several topics, or for several readers, is analyzed once a day.
+ */
+const angleCache = createMemo<AngleAnalysis>(config.angleCacheTTLSeconds * 1000, ANGLE_CACHE_MAX);
+
+/** For tests. */
+export function clearAngleCache(): void {
+  angleCache.clear();
+}
+
 export async function extractAngle(
+  client: Anthropic,
+  headline: string,
+  bodyText: string
+): Promise<AngleAnalysis> {
+  const key = hashKey(config.anthropicModel, headline, bodyText.slice(0, BODY_CHARS));
+  return angleCache.get(key, () => extractAngleUncached(client, headline, bodyText));
+}
+
+async function extractAngleUncached(
   client: Anthropic,
   headline: string,
   bodyText: string
@@ -144,16 +168,19 @@ export async function extractAngle(
   const userPrompt = buildUserPrompt(headline, bodyText);
   let lastError: Error | null = null;
 
-  // Attempt up to 2 times (initial + 1 retry with stricter prompt)
+  // Attempt up to 2 times (initial + 1 retry with stricter prompt). The retry is only for an
+  // answer that did not parse: the SDK already retries API errors itself, and a second app-level
+  // layer on top would multiply every failed call.
   for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const response = await client.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: attempt === 0 ? SYSTEM_PROMPT : STRICT_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userPrompt }],
-      });
+    const response = await client.messages.create({
+      model: config.anthropicModel,
+      max_tokens: MAX_TOKENS,
+      system: attempt === 0 ? SYSTEM_PROMPT : STRICT_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+    logUsage("angle", config.anthropicModel, response.usage);
 
+    try {
       const textBlock = response.content.find((block) => block.type === "text");
       if (!textBlock || textBlock.type !== "text") {
         throw new Error("No text content in Claude response");
