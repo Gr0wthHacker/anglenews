@@ -7,7 +7,7 @@
 Loads extension/dist unpacked and drives the real popup, side panel and
 settings page. The article page is a local stand-in served through request
 routing, and the analysis API is answered from the fictional sample in
-SAMPLE below (the extension's fetch to api.anglecheck.dev is intercepted
+SAMPLE below (the extension's fetch to anglecheck-api.vercel.app is intercepted
 inside its service worker). The story and every outlet in it are made up,
 so the screenshots attribute no framing to any real publication.
 
@@ -138,7 +138,7 @@ async def mock_api(s: Session) -> None:
         const realFetch = self.fetch.bind(self);
         self.fetch = async (input, init) => {
             const url = typeof input === 'string' ? input : input.url;
-            if (!url.startsWith('https://api.anglecheck.dev/')) return realFetch(input, init);
+            if (!url.startsWith('https://anglecheck-api.vercel.app/')) return realFetch(input, init);
             await new Promise(r => setTimeout(r, 300));
             const body = url.endsWith('/api/analyze')
                 ? { success: true, comparison: sample, error: null, cached: false }

@@ -1,7 +1,8 @@
 # Deploying the AngleCheck API on Vercel
 
-The extension calls `https://api.anglecheck.dev` (`shared/constants.ts`), so the
-API has to be live on that domain before the extension is submitted.
+The extension calls `https://anglecheck-api.vercel.app` (`API_BASE_URL` in
+`shared/constants.ts`; the build derives the manifest's only host permission
+from it), so the API has to be live there before the extension is submitted.
 
 ## Project settings
 
@@ -23,12 +24,14 @@ API has to be live on that domain before the extension is submitted.
 
 ## Domain
 
-Add `api.anglecheck.dev` to the project under Domains, then add the DNS record
-Vercel shows at the registrar for `anglecheck.dev`.
+None needed: the extension uses the project's `anglecheck-api.vercel.app`
+domain. To move to a custom domain later, attach it in Vercel first, then
+change `API_BASE_URL` and ship a new extension version (Chrome asks installed
+users to approve the new host).
 
 ## Check
 
-`GET https://api.anglecheck.dev/api/health` should return `"status":"ok"` with
+`GET https://anglecheck-api.vercel.app/api/health` should return `"status":"ok"` with
 `"anthropic": true`.
 
 ## Known limit

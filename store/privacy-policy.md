@@ -6,11 +6,11 @@ AngleCheck is a Chrome extension that shows how other news outlets cover the sto
 
 ## What AngleCheck reads
 
-AngleCheck reads a page only when you open its popup or side panel on that page. It then reads the page's headline, article text, byline, site name, publish date and lead image so it can identify the story. It does not read pages in the background and does not record your browsing.
+AngleCheck reads a page only after you click its toolbar button on that page. It then reads the page's headline, article text, byline, site name, publish date and lead image so it can identify the story. It does not read pages in the background and does not record your browsing.
 
 ## What AngleCheck sends
 
-To build a comparison, the extension sends these items to the AngleCheck server at api.anglecheck.dev:
+To build a comparison, the extension sends these items to the AngleCheck server at anglecheck-api.vercel.app:
 
 - the article's headline
 - up to 3,000 characters of the article's text

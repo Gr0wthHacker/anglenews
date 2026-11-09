@@ -2,6 +2,8 @@ import { defineConfig, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import { resolve } from "path";
+import { readFileSync } from "fs";
+import { buildManifest } from "./src/lib/manifest";
 
 export default defineConfig(({ mode }) => {
   const isDev = mode === "development";
@@ -13,15 +15,12 @@ export default defineConfig(({ mode }) => {
       viteStaticCopy({
         targets: [
           {
-            src: resolve(__dirname, "manifest.json"),
-            dest: ".",
-          },
-          {
             src: resolve(__dirname, "assets") + "/*",
             dest: "assets",
           },
         ],
       }),
+      manifestPlugin(),
       contentScriptPlugin(isDev),
     ],
     resolve: {
@@ -62,9 +61,33 @@ export default defineConfig(({ mode }) => {
 });
 
 /**
- * Custom Vite plugin that builds content scripts as separate IIFE bundles
- * after the main build completes. This ensures they are self-contained
- * with no ES module imports/exports (required for Chrome content scripts).
+ * Writes dist/manifest.json from manifest.json, adding host_permissions for
+ * the API origin in shared/constants.ts (see src/lib/manifest.ts).
+ */
+function manifestPlugin() {
+  const manifestPath = resolve(__dirname, "manifest.json");
+  return {
+    name: "anglecheck-manifest",
+    buildStart(this: { addWatchFile(id: string): void }) {
+      this.addWatchFile(manifestPath);
+    },
+    generateBundle(this: {
+      emitFile(file: { type: "asset"; fileName: string; source: string }): string;
+    }) {
+      const source = JSON.parse(readFileSync(manifestPath, "utf8"));
+      this.emitFile({
+        type: "asset",
+        fileName: "manifest.json",
+        source: JSON.stringify(buildManifest(source), null, 2) + "\n",
+      });
+    },
+  };
+}
+
+/**
+ * Custom Vite plugin that builds the article extractor as a separate IIFE bundle
+ * after the main build completes. This ensures it is self-contained with no
+ * ES module imports/exports (required for chrome.scripting.executeScript files).
  */
 function contentScriptPlugin(isDev: boolean) {
   return {
