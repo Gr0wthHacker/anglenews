@@ -345,6 +345,37 @@ describe("POST /api/analyze", () => {
     expect(json.comparison.id).toBe("cached-id");
   });
 
+  it("reports coverage gaps from the reader's article, confirmed by other outlets", async () => {
+    const { extractAngles } = await import("../../services/angle-extractor.js");
+    const results = await vi.mocked(extractAngles).getMockImplementation()!(
+      {} as never,
+      [] as never
+    );
+    const [reuters, bbc] = results as any[];
+    vi.mocked(extractAngles).mockResolvedValueOnce([
+      // Reuters (the reader's outlet) leaves out the policy shift BBC leads with.
+      { ...reuters, angle: { ...reuters.angle, key_omissions: ["Trade policy direction"] } },
+      // BBC's own omission must not be reported as a gap in the reader's article.
+      { ...bbc, angle: { ...bbc.angle, key_omissions: ["Steel industry layoffs"] } },
+    ]);
+
+    const res = await app.request("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        headline: "Steel Tariffs Shake Global Markets",
+        url: "https://reuters.com/tariffs-article",
+        domain: "reuters.com",
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.comparison.coverageGaps).toEqual([
+      { description: "Trade policy direction", mentionedBy: ["BBC"], missedBy: "Reuters" },
+    ]);
+  });
+
   it("returns 404 when no articles are fetched", async () => {
     const { fetchRelatedArticles } = await import("../../services/news-fetcher.js");
     vi.mocked(fetchRelatedArticles).mockResolvedValueOnce([]);

@@ -6,6 +6,7 @@ import { deduplicateArticles } from "../services/deduplicator.js";
 import { extractAngles, extractAngle, calculateSentiment } from "../services/angle-extractor.js";
 import { clusterArticles } from "../services/clusterer.js";
 import { getBiasForDomain } from "../services/bias-enricher.js";
+import { identifyCoverageGaps } from "../services/coverage-gaps.js";
 import {
   createTopicFingerprint,
   getCachedComparison,
@@ -20,7 +21,6 @@ import type {
   AngleComparison,
   AnalyzedArticle,
   ArticleData,
-  CoverageGap,
   EmotionalRegister,
 } from "../../../shared/types.js";
 
@@ -240,7 +240,7 @@ analyzeRoute.post(
     const clusters = clusterArticles(analyzedArticles, currentArticle);
 
     // ── Step 10: Identify coverage gaps ───────────────────────────────────
-    const coverageGaps = identifyCoverageGaps(analyzedArticles, body.domain);
+    const coverageGaps = identifyCoverageGaps(currentArticle, analyzedArticles);
 
     // ── Step 11: Calculate tone distribution ──────────────────────────────
     const toneDistribution = calculateToneDistribution(analyzedArticles);
@@ -312,50 +312,6 @@ function rawArticleToArticleData(
     publishDate: raw.publishedAt,
     imageUrl: raw.imageUrl,
   };
-}
-
-function identifyCoverageGaps(
-  articles: AnalyzedArticle[],
-  currentDomain: string
-): CoverageGap[] {
-  const gaps: CoverageGap[] = [];
-
-  // Collect all key omissions across articles that are NOT from the current domain
-  const omissionCounts = new Map<
-    string,
-    { description: string; mentionedBy: Set<string> }
-  >();
-
-  for (const article of articles) {
-    if (article.article.domain === currentDomain) continue;
-
-    // Check what angles/entities other articles cover that differ from current
-    for (const omission of article.angle.key_omissions) {
-      const key = omission.toLowerCase().trim();
-      if (!omissionCounts.has(key)) {
-        omissionCounts.set(key, {
-          description: omission,
-          mentionedBy: new Set(),
-        });
-      }
-      omissionCounts.get(key)!.mentionedBy.add(
-        article.article.siteName || article.article.domain
-      );
-    }
-  }
-
-  // Convert to coverage gaps (only include those mentioned by multiple sources)
-  for (const [, data] of omissionCounts) {
-    if (data.mentionedBy.size >= 2) {
-      gaps.push({
-        description: data.description,
-        mentionedBy: Array.from(data.mentionedBy),
-        missedBy: currentDomain,
-      });
-    }
-  }
-
-  return gaps.slice(0, 5); // Limit to top 5 gaps
 }
 
 function calculateToneDistribution(
