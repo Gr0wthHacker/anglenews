@@ -3,19 +3,20 @@
   "name": "AngleCheck",
   "version": "1.0.0",
   "description": "Compare news article angles across outlets. See how different sources frame the same story.",
-  "permissions": ["activeTab", "sidePanel", "storage", "alarms"],
-  "host_permissions": ["https://api.anglecheck.dev/*"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://api.anglecheck.dev/*"
+  ],
   "background": {
     "service_worker": "background/service-worker.js",
     "type": "module"
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["contents/article-extractor.js"],
-      "run_at": "document_idle"
-    }
-  ],
   "side_panel": {
     "default_path": "sidepanel/index.html"
   },

@@ -1,7 +1,7 @@
 /**
  * article-extractor.ts
  *
- * Chrome extension content script that extracts article data from any news
+ * Injected script that extracts article data from any news
  * webpage. Uses a multi-layered extraction strategy:
  *
  *   1. Readability-shim (paragraph-density scoring)
@@ -9,8 +9,8 @@
  *   3. DOM heuristics (common article selectors)
  *   4. Minimal fallback (document.title + body text)
  *
- * Designed to be fully self-contained (IIFE-compatible). Communicates with
- * the background service worker via chrome.runtime.onMessage.
+ * Designed to be fully self-contained (IIFE-compatible). Injected on the
+ * user's click via chrome.scripting.executeScript (see lib/extract-article.ts).
  */
 
 import { parseReadability } from "./readability-shim";
@@ -542,38 +542,14 @@ function extractArticle(): ArticleData {
 }
 
 // ---------------------------------------------------------------------------
-// Message listener
+// Entry point for on-click injection
 // ---------------------------------------------------------------------------
 
-chrome.runtime.onMessage.addListener(
-  (
-    message: { type: string },
-    _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: any) => void
-  ) => {
-    if (message.type !== "EXTRACT_ARTICLE") {
-      return false;
-    }
-
-    try {
-      const data = extractArticle();
-      sendResponse({
-        type: "ARTICLE_EXTRACTED",
-        data,
-      });
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown extraction error";
-      sendResponse({
-        type: "EXTRACTION_FAILED",
-        error: errorMessage,
-      });
-    }
-
-    // Return true to indicate we will send a response synchronously
-    // (extraction is synchronous, but Chrome requires this for safety)
-    return true;
-  }
-);
+// The extension injects this file with chrome.scripting.executeScript only
+// after the user clicks the toolbar button (activeTab), then calls this
+// function in a second executeScript call. There is no declared content
+// script and no message listener. Re-injection just reassigns the function.
+(globalThis as { __anglecheckExtractArticle?: () => ArticleData }).__anglecheckExtractArticle =
+  extractArticle;
 
 export { extractArticle, ArticleData };

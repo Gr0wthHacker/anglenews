@@ -12,6 +12,7 @@ import type {
   AngleComparison,
   ExtensionMessage,
 } from "@shared/types";
+import { extractArticleFromTab } from "../lib/extract-article";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -195,18 +196,14 @@ export default function Popup() {
         return;
       }
 
-      chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_ARTICLE" } satisfies ExtensionMessage, (response) => {
-        if (chrome.runtime.lastError || !response) {
+      // Injected on this click (activeTab), so no content script runs on other pages.
+      void extractArticleFromTab(tab.id).then((result) => {
+        if (!result.ok) {
           setState({ kind: "not-article" });
           return;
         }
 
-        if (response.type === "EXTRACTION_FAILED" || !response.data) {
-          setState({ kind: "not-article" });
-          return;
-        }
-
-        const articleData = response.data as ArticleData;
+        const articleData = result.article;
 
         // Simple heuristic: if the body is too short, it's probably not a news article
         if (!articleData.body || articleData.body.trim().length < 80) {

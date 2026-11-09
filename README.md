@@ -21,7 +21,7 @@ anglecheck/
 ├── extension/          # Chrome Manifest V3 extension (React + Tailwind + Vite)
 │   ├── src/
 │   │   ├── background/     # Service worker — API orchestration, caching
-│   │   ├── contents/       # Content script — article extraction from any page
+│   │   ├── contents/       # Article extractor, injected on the toolbar click (activeTab + scripting)
 │   │   ├── sidepanel/      # Main comparison dashboard (13 React components)
 │   │   ├── popup/          # Compact popup with top 3 contrasting angles
 │   │   ├── options/        # Settings page — API keys, source prefs, display

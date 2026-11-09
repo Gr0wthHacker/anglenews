@@ -150,9 +150,6 @@ export interface TrendingTopic {
 export type AnalysisStatus = "idle" | "extracting" | "analyzing" | "complete" | "error";
 
 export type ExtensionMessage =
-  | { type: "EXTRACT_ARTICLE" }
-  | { type: "ARTICLE_EXTRACTED"; data: ArticleData }
-  | { type: "EXTRACTION_FAILED"; error: string }
   | { type: "ANALYZE_ARTICLE"; data: ArticleData }
   | { type: "ANALYSIS_COMPLETE"; data: AngleComparison }
   | { type: "ANALYSIS_ERROR"; error: string }

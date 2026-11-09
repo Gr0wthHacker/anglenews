@@ -8,6 +8,7 @@ import type {
 } from "@shared/types";
 import { cache } from "../lib/cache";
 import { api, ApiError, ApiTimeoutError, ApiNetworkError } from "../lib/api-client";
+import { extractArticleFromTab } from "../lib/extract-article";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ async function analyzeArticle(
   const tabId = senderTabId ?? -1;
 
   try {
-    // 1. Mark as extracting (data received from content script)
+    // 1. Mark as extracting (data extracted from the page)
     setTabState(tabId, { status: "extracting", url: article.url });
 
     // 2. Build fingerprint
@@ -182,16 +183,18 @@ async function analyzeActiveTab(): Promise<void> {
     return;
   }
 
-  let article: ArticleData | undefined;
-  try {
-    const response = (await chrome.tabs.sendMessage(tab.id, {
-      type: "EXTRACT_ARTICLE",
-    } satisfies ExtensionMessage)) as ExtensionMessage | undefined;
-    if (response?.type === "ARTICLE_EXTRACTED") article = response.data;
-  } catch {
-    // No content script on this page (e.g. chrome:// pages or the Web Store).
+  // Works while the activeTab grant from the user's toolbar click holds
+  // (Chrome revokes it when the tab navigates to another page).
+  const extracted = await extractArticleFromTab(tab.id);
+  if (!extracted.ok && extracted.reason === "no-access") {
+    broadcast({
+      type: "ANALYSIS_ERROR",
+      error: "AngleCheck can't read this page yet. On a news article, click the AngleCheck toolbar button, then try again.",
+    });
+    return;
   }
 
+  const article = extracted.ok ? extracted.article : undefined;
   if (!article || !article.body || article.body.trim().length < MIN_ARTICLE_BODY) {
     broadcast({
       type: "ANALYSIS_ERROR",
