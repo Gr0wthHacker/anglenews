@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../lib/config.js";
+import { createMemo, hashKey } from "../lib/memo.js";
+import { logUsage } from "../lib/usage.js";
 
 export interface NormalizedTopic {
   topic: string;
@@ -10,7 +12,10 @@ export interface NormalizedTopic {
 
 const client = new Anthropic({ apiKey: config.anthropicApiKey });
 
-const SYSTEM_PROMPT = `You are a news topic normalizer. Given a headline and body excerpt from a news article, extract the core topic and key information.
+const EXCERPT_CHARS = 1500;
+const TOPIC_CACHE_MAX = 5000;
+
+export const SYSTEM_PROMPT = `You are a news topic normalizer. Given a headline and body excerpt from a news article, extract the core topic and key information.
 
 You MUST respond with valid JSON only, no markdown or explanation. Use this exact schema:
 {
@@ -26,18 +31,41 @@ Rules:
 - Search queries should vary in specificity: one broad, one specific, one entity-focused
 - Search queries should be optimized for news API search (short, keyword-focused)`;
 
+export function buildUserPrompt(headline: string, bodyExcerpt: string): string {
+  return `Headline: ${headline}\n\nBody excerpt: ${bodyExcerpt.slice(0, EXCERPT_CHARS)}`;
+}
+
+/**
+ * The model words the same topic a little differently on each call, and the comparison cache is
+ * keyed by that wording. Reusing the first answer for the same article keeps a repeat view on the
+ * cached comparison instead of paying for a whole new analysis. Same TTL as the comparison cache.
+ */
+const topicCache = createMemo<NormalizedTopic>(config.cacheTTLSeconds * 1000, TOPIC_CACHE_MAX);
+
+/** For tests. */
+export function clearTopicCache(): void {
+  topicCache.clear();
+}
+
 export async function normalizeTopic(
   headline: string,
   bodyExcerpt: string
 ): Promise<NormalizedTopic> {
-  const userPrompt = `Headline: ${headline}\n\nBody excerpt: ${bodyExcerpt.slice(0, 1500)}`;
+  const key = hashKey(config.anthropicModel, headline, bodyExcerpt.slice(0, EXCERPT_CHARS));
+  return topicCache.get(key, () => normalizeTopicUncached(headline, bodyExcerpt));
+}
 
+async function normalizeTopicUncached(
+  headline: string,
+  bodyExcerpt: string
+): Promise<NormalizedTopic> {
   const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model: config.anthropicModel,
     max_tokens: 512,
     system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userPrompt }],
+    messages: [{ role: "user", content: buildUserPrompt(headline, bodyExcerpt) }],
   });
+  logUsage("topic", config.anthropicModel, response.usage);
 
   const textBlock = response.content.find((block) => block.type === "text");
   if (!textBlock || textBlock.type !== "text") {
