@@ -18,7 +18,10 @@ export interface ExtractedAngle {
 
 const MODEL = "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 1000;
-const BATCH_SIZE = 5;
+// One wave for the whole request (analyze caps it at 15 articles). Three
+// sequential waves of 5 pushed /api/analyze past the extension's timeout;
+// the number of model calls per request is the same either way.
+const BATCH_SIZE = 15;
 const BATCH_DELAY_MS = 200;
 
 const VALID_REGISTERS: readonly EmotionalRegister[] = [
