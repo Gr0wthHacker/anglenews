@@ -19,7 +19,7 @@ When the user clicks the AngleCheck toolbar button, this gives temporary access 
 Shows the full comparison (framing, angle groups, coverage gaps, tone and source list) in Chrome's side panel next to the article. The popup's "Open full comparison" button opens it (`background/service-worker.ts`).
 
 **storage**
-Saves the user's settings (`chrome.storage.sync`, key `userPreferences`: the theme, and an API key if the user enters one). Caches comparison results for 4 hours, and keeps the last 20 comparisons and last 10 topic searches so the user can reopen them (`chrome.storage.local`; `lib/cache.ts`, `HistoryPanel.tsx`, `TopicSearch.tsx`). The user can clear the cache on the settings page.
+Saves the user's settings (`chrome.storage.sync`, key `userPreferences`: the theme). Caches comparison results for 4 hours, and keeps the last 20 comparisons and last 10 topic searches so the user can reopen them (`chrome.storage.local`; `lib/cache.ts`, `HistoryPanel.tsx`, `TopicSearch.tsx`). The user can clear the cache on the settings page.
 
 **alarms**
 Runs an hourly cleanup that deletes expired cached comparisons from local storage (`background/service-worker.ts`).
@@ -43,7 +43,7 @@ What the extension collects (data that leaves the user's device) and the form ch
 | Personally identifiable information | No | Not requested or sent. |
 | Health information | No | |
 | Financial and payment information | No | |
-| Authentication information | Yes, while the API key field exists | The settings page accepts an optional API key. It is stored in `chrome.storage.sync` and sent to api.anglecheck.dev only when the user clicks "Test connection" (`options/Options.tsx`). Analysis requests do not send it. If the field is removed, uncheck this. |
+| Authentication information | No | Not requested or sent. (An unused API key field was removed from the settings page.) |
 | Personal communications | No | |
 | Location | No | Not collected. The server sees the requester's IP address like any web server and holds it in memory only to rate-limit requests (`api/src/middleware/rate-limiter.ts`); request logs record method, path, status and timing, not the IP (`api/src/middleware/logger.ts`). |
 | Web history | Yes | The address and headline of the page the user asks AngleCheck to analyze, sent only when the user opens the popup or side panel on that page. No other browsing is recorded or sent. |
