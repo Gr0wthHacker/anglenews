@@ -47,7 +47,12 @@ analyzeRoute.post(
     const normalized = await normalizeTopic(body.headline, bodyExcerpt);
 
     // ── Step 3: Check cache ───────────────────────────────────────────────
-    const fingerprint = createTopicFingerprint(normalized.topic);
+    // The comparison embeds the requester's own article (currentArticle, coverage
+    // gaps), so the cache is keyed by story and article. Keyed by topic alone, a
+    // reader of outlet B was served the comparison built for outlet A's article.
+    const fingerprint = createTopicFingerprint(
+      `${normalized.topic}|${body.url || body.domain}`
+    );
     const cached = getCachedComparison(fingerprint);
 
     if (cached) {
