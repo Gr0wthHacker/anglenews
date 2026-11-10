@@ -39,7 +39,7 @@ Not on an article? Type a topic in the popup to compare coverage without opening
 How it works
 When you ask for a comparison, AngleCheck reads the headline and up to 3,000 characters of text from the page and sends them, with the page address, to the AngleCheck server. The server searches news sources for the same story, uses an AI model to summarize how each article frames it, and sends the comparison back. Bias and factual ratings come from a table of outlet ratings included with AngleCheck. Results are cached in your browser for 4 hours, so reopening the same story within that time does not send it again.
 
-AngleCheck only reads a page when you open the popup or the side panel. It does not track your browsing.
+AngleCheck only reads a page after you click its toolbar button on that page. It does not track your browsing.
 
 ## Screenshots (1280x800, in upload order)
 

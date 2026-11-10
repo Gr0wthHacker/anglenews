@@ -24,7 +24,7 @@ Instead, please email security concerns to the repository maintainers or use Git
 ## Scope
 
 The following are in scope:
-- Chrome extension code (content scripts, service worker, UI)
+- Chrome extension code (injected article extractor, service worker, UI)
 - Backend API server
 - Data handling and privacy concerns
 - XSS, injection, or other OWASP Top 10 vulnerabilities
@@ -38,7 +38,7 @@ The following are out of scope:
 
 - **No article text stored server-side** beyond the processing window
 - **API keys** are never sent to the client; all news API calls happen server-side
-- **Content script** only activates when the user clicks the extension icon
+- **Article extractor** is injected only into the tab the user clicked the extension icon on (activeTab); there is no declared content script
 - **No browsing history** is tracked or transmitted
 - **Bias ratings** are bundled locally in the extension (no external bias API calls from client)
 - **Rate limiting** is enforced server-side to prevent abuse

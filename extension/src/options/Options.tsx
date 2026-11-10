@@ -89,7 +89,9 @@ async function loadPreferences(): Promise<UserPreferences> {
       // Only known keys are kept, so settings removed in earlier versions
       // drop out of storage on the next save.
       return {
-        apiKey: typeof stored.apiKey === "string" ? stored.apiKey : null,
+        // The API key setting was removed (the server never checked it), so a
+        // stored key is dropped on the next save.
+        apiKey: null,
         theme:
           stored.theme === "light" || stored.theme === "dark"
             ? stored.theme
@@ -112,25 +114,26 @@ async function savePreferences(prefs: UserPreferences): Promise<void> {
 
 // ─── Connection test ────────────────────────────────────────────────────────
 
-type ConnectionStatus = "idle" | "testing" | "connected" | "disconnected";
+type ConnectionStatus = "idle" | "testing" | "connected" | "unconfigured" | "disconnected";
 
-async function testConnection(apiKey: string | null): Promise<boolean> {
+/**
+ * The health endpoint answers 200 even when the server has no Anthropic key,
+ * so "connected" also requires services.anthropic to be true.
+ */
+async function testConnection(): Promise<Exclude<ConnectionStatus, "idle" | "testing">> {
   try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    };
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
     const response = await fetch(`${API_BASE_URL}/api/health`, {
       method: "GET",
-      headers,
+      headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(10_000),
     });
-    return response.ok;
+    if (!response.ok) return "disconnected";
+    const body = (await response.json().catch(() => null)) as
+      | { services?: { anthropic?: boolean } }
+      | null;
+    return body?.services?.anthropic ? "connected" : "unconfigured";
   } catch {
-    return false;
+    return "disconnected";
   }
 }
 
@@ -139,7 +142,6 @@ async function testConnection(apiKey: string | null): Promise<boolean> {
 export function Options() {
   const [prefs, setPrefs] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [loaded, setLoaded] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("idle");
   const [showToast, setShowToast] = useState(false);
@@ -191,8 +193,7 @@ export function Options() {
 
   const handleTestConnection = async () => {
     setConnectionStatus("testing");
-    const ok = await testConnection(prefs.apiKey);
-    setConnectionStatus(ok ? "connected" : "disconnected");
+    setConnectionStatus(await testConnection());
   };
 
   const handleClearCache = async () => {
@@ -221,82 +222,12 @@ export function Options() {
 
       {/* 1. API Configuration */}
       <Section>
-        <SectionHeading>API Configuration</SectionHeading>
+        <SectionHeading>Server Connection</SectionHeading>
 
         <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="apiKey"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              API Key
-            </label>
-            <div className="relative">
-              <input
-                id="apiKey"
-                type={showApiKey ? "text" : "password"}
-                value={prefs.apiKey ?? ""}
-                onChange={(e) =>
-                  updatePrefs({
-                    apiKey: e.target.value || null,
-                  })
-                }
-                placeholder="Enter your API key"
-                className="w-full rounded-md border border-gray-300 py-2 pl-3 pr-10 text-sm shadow-sm focus:border-angle-blue focus:outline-none focus:ring-1 focus:ring-angle-blue"
-              />
-              <button
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                aria-label={showApiKey ? "Hide API key" : "Show API key"}
-              >
-                {showApiKey ? (
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.972 9.972 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                )}
-              </button>
-            </div>
-            <p className="mt-1.5 text-xs text-gray-500">
-              <a
-                href="https://anglecheck.dev/api-keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-angle-blue hover:underline"
-              >
-                Get an API Key
-              </a>
-            </p>
-          </div>
+          <p className="text-sm text-gray-500">
+            Checks that the AngleCheck server is reachable and ready to analyze articles.
+          </p>
 
           <div className="flex items-center gap-3">
             <button
@@ -312,6 +243,12 @@ export function Options() {
               <span className="flex items-center gap-1.5 text-sm text-green-600">
                 <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
                 Connected
+              </span>
+            )}
+            {connectionStatus === "unconfigured" && (
+              <span className="flex items-center gap-1.5 text-sm text-amber-600">
+                <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+                Server reachable, analysis not configured
               </span>
             )}
             {connectionStatus === "disconnected" && (
@@ -414,12 +351,13 @@ export function Options() {
               </li>
               <li>
                 <strong>Stored locally:</strong> your preferences (synced via
-                Chrome storage), cached comparison results, and your API key.
-                All data stays in your browser.
+                Chrome storage), cached comparison results and your recent
+                comparisons and searches.
               </li>
               <li>
                 <strong>Not collected:</strong> browsing history, personal
-                identifiers, or any data from non-news pages.
+                identifiers, or anything from pages where you have not opened
+                AngleCheck.
               </li>
             </ul>
           </div>

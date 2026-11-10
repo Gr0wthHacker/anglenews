@@ -6,6 +6,7 @@ import { deduplicateArticles } from "../services/deduplicator.js";
 import { extractAngles, extractAngle, calculateSentiment } from "../services/angle-extractor.js";
 import { clusterArticles } from "../services/clusterer.js";
 import { getBiasForDomain } from "../services/bias-enricher.js";
+import { identifyCoverageGaps } from "../services/coverage-gaps.js";
 import {
   createTopicFingerprint,
   getCachedComparison,
@@ -20,7 +21,6 @@ import type {
   AngleComparison,
   AnalyzedArticle,
   ArticleData,
-  CoverageGap,
   EmotionalRegister,
 } from "../../../shared/types.js";
 
@@ -37,6 +37,21 @@ analyzeRoute.post(
   async (c) => {
   const startTime = Date.now();
 
+  // Without a key every model call fails with Anthropic's raw 401 text, which
+  // reached the extension as the error message. Say what is wrong instead.
+  if (!config.anthropicApiKey) {
+    return c.json<AnalyzeResponse>(
+      {
+        success: false,
+        comparison: null,
+        error: "AngleCheck analysis is not available right now. Please try again later.",
+        cached: false,
+        code: "ANALYSIS_NOT_CONFIGURED",
+      },
+      503
+    );
+  }
+
   // Body already validated by middleware; Hono caches the parsed JSON
   const body = await c.req.json<AnalyzeRequest>();
   const bodyExcerpt = body.body_excerpt || "";
@@ -47,7 +62,12 @@ analyzeRoute.post(
     const normalized = await normalizeTopic(body.headline, bodyExcerpt);
 
     // ── Step 3: Check cache ───────────────────────────────────────────────
-    const fingerprint = createTopicFingerprint(normalized.topic);
+    // The comparison embeds the requester's own article (currentArticle, coverage
+    // gaps), so the cache is keyed by story and article. Keyed by topic alone, a
+    // reader of outlet B was served the comparison built for outlet A's article.
+    const fingerprint = createTopicFingerprint(
+      `${normalized.topic}|${body.url || body.domain}`
+    );
     const cached = getCachedComparison(fingerprint);
 
     if (cached) {
@@ -220,7 +240,7 @@ analyzeRoute.post(
     const clusters = clusterArticles(analyzedArticles, currentArticle);
 
     // ── Step 10: Identify coverage gaps ───────────────────────────────────
-    const coverageGaps = identifyCoverageGaps(analyzedArticles, body.domain);
+    const coverageGaps = identifyCoverageGaps(currentArticle, analyzedArticles);
 
     // ── Step 11: Calculate tone distribution ──────────────────────────────
     const toneDistribution = calculateToneDistribution(analyzedArticles);
@@ -292,50 +312,6 @@ function rawArticleToArticleData(
     publishDate: raw.publishedAt,
     imageUrl: raw.imageUrl,
   };
-}
-
-function identifyCoverageGaps(
-  articles: AnalyzedArticle[],
-  currentDomain: string
-): CoverageGap[] {
-  const gaps: CoverageGap[] = [];
-
-  // Collect all key omissions across articles that are NOT from the current domain
-  const omissionCounts = new Map<
-    string,
-    { description: string; mentionedBy: Set<string> }
-  >();
-
-  for (const article of articles) {
-    if (article.article.domain === currentDomain) continue;
-
-    // Check what angles/entities other articles cover that differ from current
-    for (const omission of article.angle.key_omissions) {
-      const key = omission.toLowerCase().trim();
-      if (!omissionCounts.has(key)) {
-        omissionCounts.set(key, {
-          description: omission,
-          mentionedBy: new Set(),
-        });
-      }
-      omissionCounts.get(key)!.mentionedBy.add(
-        article.article.siteName || article.article.domain
-      );
-    }
-  }
-
-  // Convert to coverage gaps (only include those mentioned by multiple sources)
-  for (const [, data] of omissionCounts) {
-    if (data.mentionedBy.size >= 2) {
-      gaps.push({
-        description: data.description,
-        mentionedBy: Array.from(data.mentionedBy),
-        missedBy: currentDomain,
-      });
-    }
-  }
-
-  return gaps.slice(0, 5); // Limit to top 5 gaps
 }
 
 function calculateToneDistribution(

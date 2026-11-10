@@ -47,6 +47,12 @@ export class ApiNetworkError extends Error {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const REQUEST_TIMEOUT_MS = 15_000;
+/**
+ * /api/analyze runs a topic call, news searches and up to 15 model calls, which
+ * routinely takes longer than 15s. Chrome stops an extension service worker
+ * whose fetch() waits more than 30s for a response, so stay under that.
+ */
+const ANALYZE_TIMEOUT_MS = 28_000;
 const MAX_RETRIES = 1;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -83,10 +89,11 @@ export class AngleCheckAPI {
    * Send an article for angle analysis.
    */
   async analyze(request: AnalyzeRequest): Promise<AnalyzeResponse> {
-    const response = await this.request<AnalyzeResponse>("/api/analyze", {
-      method: "POST",
-      body: JSON.stringify(request),
-    });
+    const response = await this.request<AnalyzeResponse>(
+      "/api/analyze",
+      { method: "POST", body: JSON.stringify(request) },
+      ANALYZE_TIMEOUT_MS,
+    );
     return response;
   }
 
@@ -163,12 +170,16 @@ export class AngleCheckAPI {
   /**
    * Execute a fetch with timeout, response validation, and retry logic.
    */
-  private async request<T>(path: string, init: RequestInit): Promise<T> {
+  private async request<T>(
+    path: string,
+    init: RequestInit,
+    timeoutMs: number = REQUEST_TIMEOUT_MS,
+  ): Promise<T> {
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const response = await this.rawRequest(path, init);
+        const response = await this.rawRequest(path, init, timeoutMs);
 
         // Capture rate limit info from every response
         const rateLimitInfo = parseRateLimitHeaders(response.headers);
@@ -226,9 +237,13 @@ export class AngleCheckAPI {
   /**
    * Raw fetch with timeout. Does not parse the body.
    */
-  private async rawRequest(path: string, init: RequestInit): Promise<Response> {
+  private async rawRequest(
+    path: string,
+    init: RequestInit,
+    timeoutMs: number = REQUEST_TIMEOUT_MS,
+  ): Promise<Response> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const url = `${this.baseUrl}${path}`;
 
@@ -245,7 +260,7 @@ export class AngleCheckAPI {
       return response;
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        throw new ApiTimeoutError(REQUEST_TIMEOUT_MS);
+        throw new ApiTimeoutError(timeoutMs);
       }
       throw new ApiNetworkError(
         err instanceof Error ? err.message : "Network request failed",

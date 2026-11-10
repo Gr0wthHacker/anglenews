@@ -142,6 +142,7 @@ vi.mock("../../services/cache.js", () => ({
 
 vi.mock("../../lib/config.js", () => ({
   config: {
+    anthropicApiKey: "test-key",
     maxSourcesPerQuery: 15,
     cacheTTLSeconds: 7200,
     environment: "test",
@@ -183,6 +184,25 @@ describe("POST /api/analyze", () => {
     expect(json.comparison.normalizedTopic).toBe("trade tariffs");
     expect(json.cached).toBe(false);
     expect(json.error).toBeNull();
+  });
+
+  it("returns 503 with a plain message when the Anthropic key is not set", async () => {
+    const { config } = await import("../../lib/config.js");
+    const saved = config.anthropicApiKey;
+    config.anthropicApiKey = "";
+    try {
+      const res = await app.request("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ headline: "H", url: "https://a.com/x", domain: "a.com" }),
+      });
+      expect(res.status).toBe(503);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.code).toBe("ANALYSIS_NOT_CONFIGURED");
+    } finally {
+      config.anthropicApiKey = saved;
+    }
   });
 
   it("returns 400 when headline is missing", async () => {
@@ -323,6 +343,37 @@ describe("POST /api/analyze", () => {
     expect(json.success).toBe(true);
     expect(json.cached).toBe(true);
     expect(json.comparison.id).toBe("cached-id");
+  });
+
+  it("reports coverage gaps from the reader's article, confirmed by other outlets", async () => {
+    const { extractAngles } = await import("../../services/angle-extractor.js");
+    const results = await vi.mocked(extractAngles).getMockImplementation()!(
+      {} as never,
+      [] as never
+    );
+    const [reuters, bbc] = results as any[];
+    vi.mocked(extractAngles).mockResolvedValueOnce([
+      // Reuters (the reader's outlet) leaves out the policy shift BBC leads with.
+      { ...reuters, angle: { ...reuters.angle, key_omissions: ["Trade policy direction"] } },
+      // BBC's own omission must not be reported as a gap in the reader's article.
+      { ...bbc, angle: { ...bbc.angle, key_omissions: ["Steel industry layoffs"] } },
+    ]);
+
+    const res = await app.request("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        headline: "Steel Tariffs Shake Global Markets",
+        url: "https://reuters.com/tariffs-article",
+        domain: "reuters.com",
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.comparison.coverageGaps).toEqual([
+      { description: "Trade policy direction", mentionedBy: ["BBC"], missedBy: "Reuters" },
+    ]);
   });
 
   it("returns 404 when no articles are fetched", async () => {

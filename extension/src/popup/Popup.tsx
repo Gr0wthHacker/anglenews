@@ -12,6 +12,7 @@ import type {
   AngleComparison,
   ExtensionMessage,
 } from "@shared/types";
+import { extractArticleFromTab } from "../lib/extract-article";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -118,6 +119,10 @@ export default function Popup() {
   const [searchTopic, setSearchTopic] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const hasInitiated = useRef(false);
+  // Active tab id, read on mount so the side panel can be opened inside the
+  // click handler: chrome.sidePanel.open() needs the user gesture, which does
+  // not survive an await or a message to the service worker.
+  const activeTabIdRef = useRef<number | undefined>(undefined);
 
   // Listen for broadcast messages from the service worker
   useEffect(() => {
@@ -145,6 +150,10 @@ export default function Popup() {
       setState({ kind: "not-article" });
       return;
     }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      activeTabIdRef.current = tabs[0]?.id;
+    });
 
     chrome.runtime.sendMessage({ type: "GET_ANALYSIS_STATUS" } satisfies ExtensionMessage, (response) => {
       if (chrome.runtime.lastError) {
@@ -187,18 +196,14 @@ export default function Popup() {
         return;
       }
 
-      chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_ARTICLE" } satisfies ExtensionMessage, (response) => {
-        if (chrome.runtime.lastError || !response) {
+      // Injected on this click (activeTab), so no content script runs on other pages.
+      void extractArticleFromTab(tab.id).then((result) => {
+        if (!result.ok) {
           setState({ kind: "not-article" });
           return;
         }
 
-        if (response.type === "EXTRACTION_FAILED" || !response.data) {
-          setState({ kind: "not-article" });
-          return;
-        }
-
-        const articleData = response.data as ArticleData;
+        const articleData = result.article;
 
         // Simple heuristic: if the body is too short, it's probably not a news article
         if (!articleData.body || articleData.body.trim().length < 80) {
@@ -264,6 +269,19 @@ export default function Popup() {
   const handleOpenSidePanel = useCallback(() => {
     if (!isExtensionContext) {
       console.warn('Not in extension context');
+      return;
+    }
+    const tabId = activeTabIdRef.current;
+    if (tabId !== undefined && chrome.sidePanel?.open) {
+      // Called synchronously in the click handler so the user gesture counts.
+      chrome.sidePanel
+        .open({ tabId })
+        .then(() => window.close())
+        .catch(() => {
+          chrome.runtime.sendMessage({ type: "OPEN_SIDEPANEL" } satisfies ExtensionMessage, () => {
+            window.close();
+          });
+        });
       return;
     }
     chrome.runtime.sendMessage({ type: "OPEN_SIDEPANEL" } satisfies ExtensionMessage, () => {

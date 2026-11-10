@@ -2,7 +2,12 @@ import type { BiasRating, EmotionalRegister, FactualRating } from "./types";
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-export const API_BASE_URL = "https://api.anglecheck.dev";
+/**
+ * The AngleCheck API. The extension's only host permission is derived from
+ * this at build time (extension/src/lib/manifest.ts), so changing it here
+ * changes both the fetch target and the manifest.
+ */
+export const API_BASE_URL = "https://anglecheck-api.vercel.app";
 
 // ─── Caching ─────────────────────────────────────────────────────────────────
 

@@ -10,29 +10,29 @@ AngleCheck shows how other news outlets cover the story in the article the user 
 
 ## Permission justifications
 
-Manifest: `permissions: ["activeTab", "sidePanel", "storage", "alarms"]`, `host_permissions: ["https://api.anglecheck.dev/*"]`, and a content script matching `<all_urls>`.
+Manifest: `permissions: ["activeTab", "scripting", "sidePanel", "storage", "alarms"]` and `host_permissions: ["https://anglecheck-api.vercel.app/*"]`. There are no declared content scripts and no access to other sites.
 
 **activeTab**
-When the user clicks the AngleCheck toolbar button, this gives temporary access to that tab so the side panel can read the tab's address and match the comparison to the article on screen (`sidepanel/App.tsx`, `background/service-worker.ts`). No access is kept after the user leaves the page.
+When the user clicks the AngleCheck toolbar button, this gives temporary access to that one tab so AngleCheck can read the article on screen and match the comparison to it (`lib/extract-article.ts`, `popup/Popup.tsx`, `background/service-worker.ts`). Chrome removes the access when the tab moves to another page.
+
+**scripting**
+Used with activeTab to run AngleCheck's article reader in the tab the user clicked on, only at that moment (`lib/extract-article.ts`, `contents/article-extractor.ts`). The reader collects the page's headline, article text, byline, site name, publish date and lead image and hands them back to the extension. It does not change the page, stay running, or send anything over the network. Without a toolbar click the extension cannot run it on any page.
 
 **sidePanel**
 Shows the full comparison (framing, angle groups, coverage gaps, tone and source list) in Chrome's side panel next to the article. The popup's "Open full comparison" button opens it (`background/service-worker.ts`).
 
 **storage**
-Saves the user's settings (`chrome.storage.sync`, key `userPreferences`: the theme, and an API key if the user enters one). Caches comparison results for 4 hours, and keeps the last 20 comparisons and last 10 topic searches so the user can reopen them (`chrome.storage.local`; `lib/cache.ts`, `HistoryPanel.tsx`, `TopicSearch.tsx`). The user can clear the cache on the settings page.
+Saves the user's settings (`chrome.storage.sync`, key `userPreferences`: the theme). Caches comparison results for 4 hours, and keeps the last 20 comparisons and last 10 topic searches so the user can reopen them (`chrome.storage.local`; `lib/cache.ts`, `HistoryPanel.tsx`, `TopicSearch.tsx`). The user can clear the cache on the settings page.
 
 **alarms**
 Runs an hourly cleanup that deletes expired cached comparisons from local storage (`background/service-worker.ts`).
 
-**Host permission: https://api.anglecheck.dev/***
+**Host permission: https://anglecheck-api.vercel.app/***
 AngleCheck's own analysis server. When the user asks for a comparison, the extension sends the article's headline, up to 3,000 characters of its text, its address and its domain, and receives the comparison back (`lib/api-client.ts`). This is the only host the extension sends article data to. Separately, the side panel shows each listed outlet's icon as an image from Google's favicon service (`https://www.google.com/s2/favicons?domain=<outlet domain>`), so Google receives the domains of the outlets in a comparison (`ArticleCard.tsx`, `SourceList.tsx`). Image loads need no permission.
-
-**Content script on all sites (`<all_urls>`)**
-News articles can be on any site, so the article reader must be available on any page. The script only listens for a request from the popup or side panel; when asked, it reads the page's headline, article text, byline, site name, publish date and lead image and returns them to the extension (`contents/article-extractor.ts`). It does not read pages on its own, change pages, or send anything over the network.
 
 ## Remote code
 
-No, I am not using remote code. All JavaScript is bundled in the package (React, Readability-style extraction and icons are built in by Vite). The extension fetches JSON data from api.anglecheck.dev and never loads or evaluates remote scripts.
+No, I am not using remote code. All JavaScript is bundled in the package (React, Readability-style extraction and icons are built in by Vite). The extension fetches JSON data from anglecheck-api.vercel.app and never loads or evaluates remote scripts.
 
 ## Data usage
 
@@ -43,10 +43,10 @@ What the extension collects (data that leaves the user's device) and the form ch
 | Personally identifiable information | No | Not requested or sent. |
 | Health information | No | |
 | Financial and payment information | No | |
-| Authentication information | Yes, while the API key field exists | The settings page accepts an optional API key. It is stored in `chrome.storage.sync` and sent to api.anglecheck.dev only when the user clicks "Test connection" (`options/Options.tsx`). Analysis requests do not send it. If the field is removed, uncheck this. |
+| Authentication information | No | Not requested or sent. (An unused API key field was removed from the settings page.) |
 | Personal communications | No | |
 | Location | No | Not collected. The server sees the requester's IP address like any web server and holds it in memory only to rate-limit requests (`api/src/middleware/rate-limiter.ts`); request logs record method, path, status and timing, not the IP (`api/src/middleware/logger.ts`). |
-| Web history | Yes | The address and headline of the page the user asks AngleCheck to analyze, sent only when the user opens the popup or side panel on that page. No other browsing is recorded or sent. |
+| Web history | Yes | The address and headline of the page the user asks AngleCheck to analyze, sent only after the user clicks the AngleCheck toolbar button on that page. No other browsing is recorded or sent. |
 | User activity | No | No clicks, keystrokes, scrolling or mouse movement are recorded. |
 | Website content | Yes | The article's headline and up to 3,000 characters of its text, sent for analysis when the user asks. |
 
